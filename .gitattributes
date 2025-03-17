@@ -1,2 +1,4 @@
 vsld-frontend/** linguist-documentation=false
 vsld-frontend/** linguist-vendored=false
+vsld-backend/* linguist-documentation=false
+vsld-backend/* linguist-vendored=false
