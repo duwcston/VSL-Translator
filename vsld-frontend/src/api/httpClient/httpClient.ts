@@ -9,11 +9,6 @@ enum HTTPMethod {
 }
 
 export default function useHttpClient() {
-    // function createHeader() {
-    //     const headers: { [key: string]: string } = {}
-    //     return headers
-    // }
-
     async function httpRequest(url: string, method: HTTPMethod, body?: any, headers?: any) {
 
         const config: AxiosRequestConfig = {
