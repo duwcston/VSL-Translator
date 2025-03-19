@@ -1,3 +1,5 @@
+import axios, { AxiosRequestConfig } from 'axios'
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 enum HTTPMethod {
     GET = 'get',
@@ -7,34 +9,36 @@ enum HTTPMethod {
 }
 
 export default function useHttpClient() {
-    function createHeader() {
-        const headers: { [key: string]: string } = {}
-        return headers
-    }
+    // function createHeader() {
+    //     const headers: { [key: string]: string } = {}
+    //     return headers
+    // }
 
-    async function httpRequest(url: string, method: HTTPMethod, body?: any) {
-        const headers = createHeader()
+    async function httpRequest(url: string, method: HTTPMethod, body?: any, headers?: any) {
 
-        const response = await fetch(url, {
+        const config: AxiosRequestConfig = {
+            url,
             method,
             headers,
-            body: body ?? undefined,
-        })
-
-        if (!response.ok) throw await response.json()
+            data: body ?? undefined,
+        }
 
         try {
-            return await response.json()
-        } catch {
-            return null
+            const response = await axios(config)
+            return response.data
+        } catch (error: any) {
+            if (error.response) {
+                throw error.response.data
+            }
+            throw error
         }
     }
 
     async function httpGet(url: string) {
         return httpRequest(url, HTTPMethod.GET)
     }
-    async function httpPost(url: string, body: any) {
-        return httpRequest(url, HTTPMethod.POST, body)
+    async function httpPost(url: string, body: any, headers: any) {
+        return httpRequest(url, HTTPMethod.POST, body, headers)
     }
     async function httpPut(url: string, body: any) {
         return httpRequest(url, HTTPMethod.PUT, body)
