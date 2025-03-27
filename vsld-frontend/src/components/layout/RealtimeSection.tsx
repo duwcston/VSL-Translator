@@ -1,4 +1,4 @@
-import { Result } from "./UI/Result"
+import { Result } from "../UI/Result"
 
 export function RealtimeSection() {
     return (

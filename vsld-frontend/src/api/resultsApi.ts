@@ -1,16 +1,16 @@
-import useHttpClient from './httpClient/httpClient'
-import { DetectionResponse } from './model/DetectionResponse'
+import useHttpClient from './httpClient'
+import { DetectionResponse } from '../types/DetectionResponse'
 
 const url = import.meta.env.VITE_BACKEND_URL
 
-const useImagesApi = () => {
+const useResultsApi = () => {
   const httpClient = useHttpClient()
 
-  async function getImages() {
+  async function getResults() {
     return await httpClient.httpGet(`${url}/yolo/get_predict`)
   }
 
-  async function uploadImage(
+  async function uploadFile(
     file: File,
   ): Promise<DetectionResponse> {
     const formData = new FormData()
@@ -24,9 +24,9 @@ const useImagesApi = () => {
   }
 
   return {
-    getImages,
-    uploadImage,
+    getResults,
+    uploadFile,
   }
 }
 
-export default useImagesApi
+export default useResultsApi

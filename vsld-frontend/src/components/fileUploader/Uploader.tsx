@@ -1,8 +1,8 @@
 import React from "react"
 import Button from "../UI/Button";
 import { EUploadStatus } from "../../types/FileIntermediate";
-import useImagesApi from "../../api/imagesApi";
-import { DetectionResponse } from "../../api/model/DetectionResponse";
+import useResultsApi from "../../api/resultsApi";
+import { DetectionResponse } from "../../types/DetectionResponse";
 
 const ALLOWED_FILE_TYPES = ['video/quicktime', 'video/mp4', 'image/jpeg', 'image/png']
 
@@ -10,20 +10,21 @@ export function Uploader() {
     const [file, setFile] = React.useState<File | null>(null)
     const [isDragging, setIsDragging] = React.useState(false)
     const [status, setStatus] = React.useState<EUploadStatus>(EUploadStatus.Idle)
-    const [uploadProgress, setUploadProgress] = React.useState(0)
+    // const [uploadProgress, setUploadProgress] = React.useState(0)
     const [results, setResults] = React.useState<Record<string, DetectionResponse>>({})
-    const [resultImagesURL, setResultImagesURL] = React.useState<string | null>(null)
+    const [resultURL, setResultURL] = React.useState<string | null>(null)
     const inputRef = React.useRef<HTMLInputElement>(null)
 
     const url = import.meta.env.VITE_BACKEND_URL
 
-    const imageApi = useImagesApi()
+    const resultApi = useResultsApi()
 
     function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
         if (event.target.files) {
             const acceptedFiles = Array.from(event.target.files).filter((file) => ALLOWED_FILE_TYPES.includes(file.type))
             setStatus(EUploadStatus.Idle)
             setFile(acceptedFiles[0])
+            setResults({})
         }
     }
 
@@ -61,7 +62,7 @@ export function Uploader() {
         setFile(null)
         setStatus(EUploadStatus.Idle)
         setResults({})
-        setResultImagesURL(null)
+        setResultURL(null)
         // setUploadProgress(0)
     }
 
@@ -77,7 +78,7 @@ export function Uploader() {
         setStatus(EUploadStatus.Uploading)
         // setUploadProgress(0)
         try {
-            const res = await imageApi.uploadImage(file)
+            const res = await resultApi.uploadFile(file)
             //           onUploadProgress: (progressEvent) => {
             //                 const progress = progressEvent.total
             //                     ? Math.round((progressEvent.loaded / progressEvent.total) * 100)
@@ -85,12 +86,9 @@ export function Uploader() {
             //                 setUploadProgress(progress)
             //             }
             setResults({ ...results, [file.name]: { ...res } })
-            // results[file.name] = res
-            // console.log(results)
-            // console.log(res)
             setStatus(EUploadStatus.Success)
-            setResultImagesURL(`${url}/yolo/get_predict`)
-            setUploadProgress(100)
+            setResultURL(`${url}/yolo/get_predict`)
+            // setUploadProgress(100)
         } catch (err) {
             setStatus(EUploadStatus.Error)
             // setUploadProgress(0)
@@ -144,7 +142,7 @@ export function Uploader() {
                         </div>
                     )}
 
-                    {status === EUploadStatus.Uploading && (
+                    {/* {status === EUploadStatus.Uploading && (
                         <div className="space-y-2">
                             <div className="w-full h-2.5 bg-gray-200 rounded-full">
                                 <div className="h-2.5 bg-blue-500 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}>
@@ -152,7 +150,8 @@ export function Uploader() {
                             </div>
                             <p className="text-sm">{uploadProgress}%</p>
                         </div>
-                    )}
+                    )} */}
+
                     {status === EUploadStatus.Success && <p className="text-sm text-green-500">File uploaded successfully</p>}
                     {status === EUploadStatus.Error && <p className="text-sm text-red-500">Error uploading file</p>}
                     <Button width="full" height="auto" label="Upload" onClick={handleFileUpload}></Button>
@@ -167,14 +166,18 @@ export function Uploader() {
                         {status === EUploadStatus.Idle ? (
                             <span className="flex items-center justify-center">📷</span>
                         ) : status === EUploadStatus.Uploading ? (
-                            <div className="flex items-center justify-center">
+                            <div className="flex items-center justify-center cursor-wait">
                                 <div className="size-10 animate-spin rounded-full h-8 w-8 border-t-2 border-b-2"></div>
                             </div>
-                        ) : status === EUploadStatus.Success && resultImagesURL ? (
-                            <img
-                                src={resultImagesURL}
-                                className="max-h-full max-w-full object-contain"
-                            />
+                        ) : status === EUploadStatus.Success && resultURL ? (
+                            // <img
+                            //     src={resultURL}
+                            //     className="max-h-full max-w-full object-contain"
+                            // />
+                            <video
+                                poster={resultURL} muted>
+                                <source src={resultURL} type="video/mp4"></source>
+                            </video>
                         ) : null}
                     </div>
                     <div className="w-full border py-2 px-2 rounded bg-white">
