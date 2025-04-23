@@ -6,8 +6,8 @@ const url = import.meta.env.VITE_BACKEND_URL
 const useResultsApi = () => {
   const httpClient = useHttpClient()
 
-  async function getResults() {
-    return await httpClient.httpGet(`${url}/yolo/get_predict`)
+  async function getResult() {
+    return `${url}/yolo/result`
   }
 
   async function uploadFile(
@@ -24,7 +24,7 @@ const useResultsApi = () => {
   }
 
   return {
-    getResults,
+    getResult,
     uploadFile,
   }
 }

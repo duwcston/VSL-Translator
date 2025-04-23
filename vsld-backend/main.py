@@ -1,29 +1,36 @@
-import asyncio
-import base64
 import os
 from pathlib import Path
 import shutil
-from typing import Optional
-from fastapi import FastAPI, File, WebSocket, WebSocketDisconnect
+from typing import Dict, List
+from functools import lru_cache
+
+from fastapi import FastAPI, File, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from ultralytics import YOLO
 import cv2
-import numpy as np
 from fastapi import UploadFile
 
+# Constants
+ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
+ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.mov'}
+ALLOWED_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS.union(ALLOWED_VIDEO_EXTENSIONS)
+CONF_THRESHOLD = 0.6
+TEMP_DIR = Path("temp_files")
+PREDICTION_DIR = Path("runs/detect/predict")
+CHUNK_SIZE = 1024 * 1024  # 1MB chunks for streaming
+
+# Create temp directory if it doesn't exist
+TEMP_DIR.mkdir(exist_ok=True)
+
 origins = [
-    "http://localhost:5173"
+    "http://localhost:5173",
 ]
-
-model = YOLO("models/yolo11s.pt")
-
-cap = cv2.VideoCapture(0)
-conf_thresh = 0.6
-
 
 app = FastAPI(
     title="VSL Detection Backend",
+    description="API for visual sign language detection using YOLO models",
+    version="1.0.0",
 )
 
 app.add_middleware(
@@ -34,184 +41,193 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global variable to store video capture state
-class VideoState:
-    def __init__(self):
-        self.cap: Optional[cv2.VideoCapture] = None
-        self.processing = False
-
-video_state = VideoState()
+@lru_cache(maxsize=1)
+def get_model():
+    """Load and cache the YOLO model"""
+    return YOLO("models/yolo11s.pt")
 
 def cleanup_runs_directory():
     """Clean up the runs directory before new predictions"""
-    runs_path = Path("runs/detect/")
-    if runs_path.exists():
-        shutil.rmtree(runs_path)
-    else:
-        return
+    if PREDICTION_DIR.exists():
+        try:
+            shutil.rmtree(PREDICTION_DIR.parent.parent)
+        except Exception as e:
+            print(f"Error cleaning up directory: {e}")
+
+def get_file_extension(filename: str) -> str:
+    """Extract and return the file extension"""
+    return Path(filename).suffix.lower()
+
+def is_valid_file(filename: str) -> bool:
+    """Check if the file has a valid extension"""
+    return get_file_extension(filename) in ALLOWED_EXTENSIONS
+
+def is_video_file(filename: str) -> bool:
+    """Check if the file is a video"""
+    return get_file_extension(filename) in ALLOWED_VIDEO_EXTENSIONS
+
+def is_image_file(filename: str) -> bool:
+    """Check if the file is an image"""
+    return get_file_extension(filename) in ALLOWED_IMAGE_EXTENSIONS
+
+async def save_upload_file(file: UploadFile) -> Path:
+    """Save an uploaded file to a temporary location and return the path"""
+    temp_file = TEMP_DIR / f"temp_{file.filename}"
     
-def convert_avi_to_mp4(input_path, output_path):
-    """Convert an AVI video file to MP4 format using OpenCV."""
-    cap = cv2.VideoCapture(input_path)
-    
-    # Get the video's properties (frame width, height, and FPS)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    try:
+        contents = await file.read()
+        with open(temp_file, "wb") as f:
+            f.write(contents)
+        return temp_file
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Could not save file: {str(e)}"
+        )
 
-    # Define the codec and create a VideoWriter object for MP4 output
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-
-    # Read and write each frame to the new video file
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        out.write(frame)
-    
-    # Release resources
-    cap.release()
-    out.release()
-    print(f"Video saved as {output_path}")
-
-# async def stream_video(websocket: WebSocket):
-#     try:
-#         while True:
-#             ret, frame = cap.read()
-#             if not ret:
-#                 # Restart video if it ends
-#                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-#                 continue
-
-#             results = model.predict(source=frame, conf=conf_thresh)
-
-#             # Get the annotated frame with bounding boxes
-#             annotated_frame = results[0].plot()
-
-#             for result in results[0].boxes:
-#                 x1, y1, x2, y2 = result.xyxy[0]  # Get bounding box coordinates
-#                 class_id = int(result.cls[0])  # Convert the class index to integer
-#                 class_name = model.names[class_id]  # Retrieve class name from model.names
-
-#             # Encode frame to JPEG
-#             _, buffer = cv2.imencode(".jpg", annotated_frame)
-
-#             # Convert frame to base64
-#             frame_b64 = base64.b64encode(buffer).decode("utf-8")
-
-#             # Send frame to the client
-#             await websocket.send_text(frame_b64)
-
-#             # Introduce a small delay to reduce CPU usage
-#             await asyncio.sleep(0.03)  # ~30 FPS
-#     except WebSocketDisconnect:
-#         print("WebSocket disconnected.")
-#     finally:
-#         cap.release()
+def process_detection_results(results) -> List[Dict]:
+    """Process detection results into a consistent format"""
+    if not results or not results[0].boxes:
+        return []
+        
+    model = get_model()
+    return [
+        {
+            "class_name": model.names[int(box.cls[0])],
+            "confidence": float(box.conf[0]),
+        }
+        for box in results[0].boxes
+    ]
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {
+        "status": "online", 
+        "message": "VSL Detection Backend running"
+    }
 
 @app.post("/yolo/predict")
 async def predict_objects(file: UploadFile = File(...)):
-    # """Handle video or image uploads for prediction"""
-    filename = file.filename
+    """Handle video or image uploads for prediction"""
+    if not file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No filename provided"
+        )
+        
+    if not is_valid_file(file.filename):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file format. Allowed formats: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
     
     # Clean up previous predictions
     cleanup_runs_directory()
     
     # Save uploaded file temporarily
-    temp_path = Path(f"temp_{filename}")
-    print(filename)
-    print(temp_path)
-    if filename.endswith(('.mp4', '.mov')):
-        with temp_path.open("wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
+    temp_path = await save_upload_file(file)
 
     try:
-        if filename.endswith(('.mp4', '.mov')):
-            # Process video
+        model = get_model()
+        
+        if is_video_file(file.filename):
+            # Validate video file
             cap = cv2.VideoCapture(str(temp_path))
             if not cap.isOpened():
-                return {"error": "Failed to open video file"}
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to open video file, it may be corrupted"
+                )
             
-            # Process first frame as sample
-            ret, frame = cap.read()
-            if not ret:
-                return {"error": "Failed to read video"}
-                
-            results = model.predict(source=temp_path, save=True, conf=conf_thresh)
-
-            detections = [
-                {
-                    "class_name": model.names[int(result.cls[0])],
-                    "confidence": float(result.conf[0]),
-                }
-                for result in results[0].boxes
-            ]
-            
+            # Check if video has frames
+            ret, _ = cap.read()
             cap.release()
+            
+            if not ret:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to read video frames"
+                )
+                
+            # Process video with YOLO model
+            results = model.predict(source=temp_path, save=True, conf=CONF_THRESHOLD)
+            detections = process_detection_results(results)
+            
             return {
                 "detections": detections,
-                "video_path": f"runs/detect/predict/{filename}",
+                "video_path": f"runs/detect/predict/{file.filename}",
+                "type": "video"
             }
             
-        elif filename.endswith(('.jpg', '.jpeg', '.png')):
-            # Process image (existing functionality)
-            image_bytes = await file.read()
-            image = np.frombuffer(image_bytes, dtype=np.uint8)
-            image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-
-            results = model.predict(source=image, save=True, conf=conf_thresh)
-
-            detections = [
-                {
-                    "class_name": model.names[int(result.cls[0])],
-                    "confidence": float(result.conf[0]),
-                }
-                for result in results[0].boxes
-            ]
-            return {"detections": detections}
+        elif is_image_file(file.filename):
+            image = cv2.imread(str(temp_path))
+            if image is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, 
+                    detail="Failed to read image, it may be corrupted"
+                )
+                
+            results = model.predict(source=image, save=True, conf=CONF_THRESHOLD)
+            detections = process_detection_results(results)
             
-        else:
-            return {"error": "Unsupported file format"}
-            
+            return {
+                "detections": detections,
+                "type": "image"
+            }
+    except Exception as e:
+        # Handle unexpected errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred during processing: {str(e)}"
+        )
     finally:
+        # Clean up temporary file
         if temp_path.exists():
-            os.remove(temp_path)
+            try:
+                os.remove(temp_path)
+            except Exception as e:
+                print(f"Error removing temp file: {e}")
 
-@app.get("/yolo/get_predict")
-def get_prediction_result():
+@app.get("/yolo/result")
+async def get_prediction_result():
     """Serve the predicted video or image"""
-    runs_path = Path("runs/detect/predict")
-    # runs_path = Path("E:/IU/Thesis/demo/vsld-frontend/public")
-    if not runs_path.exists():
-        return {"error": "No predictions available"}
+    if not PREDICTION_DIR.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="No predictions available"
+        )
         
-    files = list(runs_path.glob("*"))
+    files = list(PREDICTION_DIR.glob("*"))
     
     if not files:
-        return {"error": "No prediction files found"}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="No prediction files found"
+        )
         
     file_path = files[0]
-    if file_path.suffix in ['.mp4', '.mov']:
-        def stream_video_file():
-            with open(file_path, 'rb') as video_file:
-                while chunk := video_file.read(1024 * 1024):  # 1MB chunks
-                    yield chunk
-                    
+    
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prediction file not found"
+        )
+    
+    if get_file_extension(file_path.name) in ALLOWED_VIDEO_EXTENSIONS:
         return StreamingResponse(
-            stream_video_file(),
+            content=stream_video_file(file_path),
             media_type="video/mp4",
             headers={"Content-Disposition": f"inline; filename={file_path.name}"}
         )
     else:
-        return FileResponse(file_path, media_type="image/jpeg")
+        return FileResponse(
+            path=file_path, 
+            media_type="image/jpeg",
+            headers={"Content-Disposition": f"inline; filename={file_path.name}"}
+        )
 
-# @app.websocket("/yolo/video")
-# async def websocket_endpoint(websocket: WebSocket):
-#     await websocket.accept()
-#     await stream_video(websocket)
+async def stream_video_file(file_path: Path):
+    """Async generator to stream video files in chunks"""
+    async with open(file_path, 'rb') as video_file:
+        while chunk := await video_file.read(CHUNK_SIZE):
+            yield chunk
