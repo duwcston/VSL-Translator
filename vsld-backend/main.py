@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
 import shutil
-from typing import Dict, List
+from typing import Dict, List, Optional
 from functools import lru_cache
+import moviepy.editor as moviepy
 
 from fastapi import FastAPI, File, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,7 +21,6 @@ TEMP_DIR = Path("temp_files")
 PREDICTION_DIR = Path("runs/detect/predict")
 CHUNK_SIZE = 1024 * 1024  # 1MB chunks for streaming
 
-# Create temp directory if it doesn't exist
 TEMP_DIR.mkdir(exist_ok=True)
 
 origins = [
@@ -85,19 +85,79 @@ async def save_upload_file(file: UploadFile) -> Path:
             detail=f"Could not save file: {str(e)}"
         )
 
-def process_detection_results(results) -> List[Dict]:
+async def convert_avi_to_mp4(input_path: Path, output_path: Path) -> None:
+    """Convert AVI video to MP4 format using moviepy"""
+    try:
+        clip = moviepy.VideoFileClip(str(input_path))
+        clip.write_videofile(str(output_path), codec="libx264", audio_codec="aac")
+        clip.close()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error converting video: {str(e)}"
+        )
+
+def process_detection_results(results, frame_number: Optional[int] = None, timestamp: Optional[float] = None) -> List[Dict]:
     """Process detection results into a consistent format"""
     if not results or not results[0].boxes:
         return []
         
     model = get_model()
-    return [
+    detections = [
         {
             "class_name": model.names[int(box.cls[0])],
             "confidence": float(box.conf[0]),
         }
         for box in results[0].boxes
     ]
+    
+    # If frame information is provided, include it in the response
+    if frame_number is not None and timestamp is not None:
+        return {
+            "frame_number": frame_number,
+            "timestamp": timestamp,
+            "detections": detections
+        }
+    
+    return detections
+
+def process_video_frame_by_frame(video_path: Path, model) -> List[Dict]:
+    """Process a video frame by frame to get per-frame predictions"""
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to open video file"
+        )
+    
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    
+    frame_detections = []
+    frame_number = 0
+    
+    # Process each frame
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+            
+        # Get timestamp in seconds
+        timestamp = frame_number / fps
+        
+        # Run YOLO detection on the frame
+        results = model.predict(source=frame, conf=CONF_THRESHOLD, verbose=False)
+        frame_result = process_detection_results(results, frame_number, timestamp)
+        frame_detections.append(frame_result)
+        
+        frame_number += 1
+        
+        # For very long videos, limit the number of frames processed
+        # to avoid memory issues and excessive response size
+        if frame_number >= 1000:  # Limit to 1000 frames (~33 sec at 30fps)
+            break
+    
+    cap.release()
+    return frame_detections, fps
 
 @app.get("/")
 def read_root():
@@ -121,7 +181,6 @@ async def predict_objects(file: UploadFile = File(...)):
             detail=f"Unsupported file format. Allowed formats: {', '.join(ALLOWED_EXTENSIONS)}"
         )
     
-    # Clean up previous predictions
     cleanup_runs_directory()
     
     # Save uploaded file temporarily
@@ -131,7 +190,6 @@ async def predict_objects(file: UploadFile = File(...)):
         model = get_model()
         
         if is_video_file(file.filename):
-            # Validate video file
             cap = cv2.VideoCapture(str(temp_path))
             if not cap.isOpened():
                 raise HTTPException(
@@ -148,16 +206,54 @@ async def predict_objects(file: UploadFile = File(...)):
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Failed to read video frames"
                 )
-                
-            # Process video with YOLO model
-            results = model.predict(source=temp_path, save=True, conf=CONF_THRESHOLD)
-            detections = process_detection_results(results)
             
-            return {
-                "detections": detections,
-                "video_path": f"runs/detect/predict/{file.filename}",
-                "type": "video"
-            }
+            frame_detections, fps = process_video_frame_by_frame(temp_path, model)
+            results = model.predict(source=temp_path, save=True, conf=CONF_THRESHOLD)
+            
+            avi_files = list(PREDICTION_DIR.glob("*.avi"))
+            if avi_files:
+                avi_path = avi_files[0]
+                mp4_path = avi_path.with_suffix('.mp4')
+                
+                await convert_avi_to_mp4(avi_path, mp4_path)
+                
+                # Remove the original AVI file only if MP4 exists
+                if mp4_path.exists():
+                    try:
+                        os.remove(avi_path)
+                        print(f"Successfully removed original AVI file: {avi_path}")
+                    except Exception as e:
+                        print(f"Warning: Could not remove original AVI: {e}")
+                
+                return {
+                    "detections": frame_detections,
+                    "video_path": f"runs/detect/predict/{mp4_path.name}",
+                    "type": "video",
+                    "fps": fps
+                }
+            else:
+                # Check if the model directly created an MP4
+                mp4_files = list(PREDICTION_DIR.glob("*.mp4"))
+                if mp4_files:
+                    return {
+                        "detections": frame_detections,
+                        "video_path": f"runs/detect/predict/{mp4_files[0].name}",
+                        "type": "video",
+                        "fps": fps
+                    }
+                
+                # No video file found in the expected location
+                print("Warning: No video files found in prediction directory")
+                all_files = list(PREDICTION_DIR.glob("*"))
+                print(f"Files in prediction directory: {[f.name for f in all_files]}")
+                
+                return {
+                    "detections": frame_detections,
+                    "video_path": None,
+                    "type": "video",
+                    "fps": fps,
+                    "warning": "No output video was generated"
+                }
             
         elif is_image_file(file.filename):
             image = cv2.imread(str(temp_path))
@@ -175,13 +271,11 @@ async def predict_objects(file: UploadFile = File(...)):
                 "type": "image"
             }
     except Exception as e:
-        # Handle unexpected errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during processing: {str(e)}"
         )
     finally:
-        # Clean up temporary file
         if temp_path.exists():
             try:
                 os.remove(temp_path)
@@ -228,6 +322,9 @@ async def get_prediction_result():
 
 async def stream_video_file(file_path: Path):
     """Async generator to stream video files in chunks"""
-    async with open(file_path, 'rb') as video_file:
-        while chunk := await video_file.read(CHUNK_SIZE):
+    with open(file_path, 'rb') as video_file:
+        while True:
+            chunk = video_file.read(CHUNK_SIZE)
+            if not chunk:
+                break
             yield chunk

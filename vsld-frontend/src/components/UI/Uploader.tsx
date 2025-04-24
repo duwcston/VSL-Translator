@@ -2,7 +2,7 @@ import React from "react"
 import Button from "./Button";
 import { EUploadStatus } from "../../types/FileIntermediate";
 import useResultsApi from "../../api/resultsApi";
-import { DetectionResponse } from "../../types/DetectionResponse";
+import { DetectionResponse, Detection, FrameDetection } from "../../types/DetectionResponse";
 
 const ALLOWED_FILE_TYPES = ['video/quicktime', 'video/mp4', 'image/jpeg', 'image/png', 'image/jpg']
 
@@ -12,11 +12,89 @@ export function Uploader() {
     const [status, setStatus] = React.useState<EUploadStatus>(EUploadStatus.Idle)
     const [results, setResults] = React.useState<Record<string, DetectionResponse>>({})
     const [resultURL, setResultURL] = React.useState<string | null>(null)
+    const [currentTime, setCurrentTime] = React.useState<number>(0)
+    const [currentFrameDetections, setCurrentFrameDetections] = React.useState<Detection[]>([])
+    const videoRef = React.useRef<HTMLVideoElement>(null)
     const inputRef = React.useRef<HTMLInputElement>(null)
 
-    // const url = import.meta.env.VITE_BACKEND_URL
-
     const resultApi = useResultsApi()
+
+    // Update current frame detections when video time changes or results change
+    React.useEffect(() => {
+        if (status === EUploadStatus.Success && Object.keys(results).length > 0) {
+            const result = Object.values(results)[0]
+
+            // Check if we have frame-specific detections
+            if (result && Array.isArray(result.detections) &&
+                result.detections.length > 0 && 'frame_number' in result.detections[0]) {
+
+                // Find the closest frame to current time
+                const frameDetections = result.detections as FrameDetection[]
+                const fps = result.fps || 30 // Default to 30fps if not provided
+                const currentFrame = Math.round(currentTime * fps)
+
+                // Find the frame detection that matches or is closest to the current frame
+                const closestFrame = frameDetections.reduce((prev, curr) => {
+                    return Math.abs(curr.frame_number - currentFrame) <
+                        Math.abs(prev.frame_number - currentFrame) ? curr : prev
+                }, frameDetections[0])
+
+                setCurrentFrameDetections(closestFrame.detections)
+            }
+            // If there are no frame-specific detections, use the overall detections
+            else if (result && Array.isArray(result.detections)) {
+                setCurrentFrameDetections(result.detections as Detection[])
+            }
+            else if (result && !Array.isArray(result.detections)) {
+                setCurrentFrameDetections([result.detections as Detection])
+            }
+        }
+    }, [currentTime, results, status])
+
+    // Handle video time update
+    const handleTimeUpdate = () => {
+        if (videoRef.current) {
+            setCurrentTime(videoRef.current.currentTime);
+        }
+    };
+
+    function onDragEnter(e: React.DragEvent<HTMLDivElement>) {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(true)
+    }
+
+    function onDragOver(e: React.DragEvent<HTMLDivElement>) {
+        e.preventDefault()
+        e.stopPropagation()
+    }
+
+    function onDragLeave(e: React.DragEvent<HTMLDivElement>) {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(false)
+    }
+
+    function onDrop(e: React.DragEvent<HTMLDivElement>) {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(false)
+
+        setStatus(EUploadStatus.Idle)
+        setResults({})
+        setCurrentFrameDetections([])
+
+        const { files } = e.dataTransfer
+
+        if (files.length > 0) {
+            const acceptedFiles = Array.from(files).filter((file) => ALLOWED_FILE_TYPES.includes(file.type))
+            setFile(acceptedFiles[0])
+        }
+    }
+
+    function onClick() {
+        inputRef.current?.click()
+    }
 
     function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
         if (event.target.files) {
@@ -24,37 +102,18 @@ export function Uploader() {
             setStatus(EUploadStatus.Idle)
             setFile(acceptedFiles[0])
             setResults({})
+            setCurrentFrameDetections([])
         }
     }
 
-    const onDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
-        event.preventDefault()
-        event.stopPropagation()
-        setIsDragging(true)
-        event.dataTransfer.dropEffect = 'copy'
-    }
-
-    const onDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-        event.preventDefault()
-    }
-
-    const onDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
-        event.preventDefault()
-        setIsDragging(false)
-    }
-
-    const onDrop = (event: React.DragEvent<HTMLDivElement>) => {
-        event.preventDefault()
-        setIsDragging(false)
-        if (event.dataTransfer.files.length) {
-            const acceptedFiles = Array.from(event.dataTransfer.files).filter((file) => ALLOWED_FILE_TYPES.includes(file.type))
-            setFile(acceptedFiles[0])
+    function convertFileSize(size: number) {
+        if (size < 1024) {
+            return `${size} B`
+        } else if (size < 1024 * 1024) {
+            return `${(size / 1024).toFixed(2)} KB`
+        } else {
+            return `${(size / (1024 * 1024)).toFixed(2)} MB`
         }
-    }
-
-    const onClick = () => {
-        if (!inputRef.current) return
-        inputRef.current.click()
     }
 
     function handleClear() {
@@ -62,28 +121,27 @@ export function Uploader() {
         setStatus(EUploadStatus.Idle)
         setResults({})
         setResultURL(null)
-        // setUploadProgress(0)
-    }
-
-    function convertFileSize(size: number) {
-        return (size / 1024 / 1024).toFixed(1) + ' MB'
+        setCurrentFrameDetections([])
     }
 
     async function handleFileUpload() {
-        if (!file) {
-            setStatus(EUploadStatus.Error)
-            return
-        }
-        setStatus(EUploadStatus.Uploading)
+        if (!file) return
+
         try {
-            const res = await resultApi.uploadFile(file)
-            setResults({ ...results, [file.name]: { ...res } })
-            const resUrl = await resultApi.getResult()
-            setResultURL(resUrl)
-            setStatus(EUploadStatus.Success)
-        } catch (err) {
+            setStatus(EUploadStatus.Uploading)
+            const response = await resultApi.uploadFile(file)
+
+            const key = file.name
+            setResults((prev) => ({ ...prev, [key]: response }))
+
+            // Wait a bit to let the server process the video
+            setTimeout(() => {
+                setResultURL(resultApi.getResult())
+                setStatus(EUploadStatus.Success)
+            }, 1000)
+        } catch (error) {
+            console.error(error)
             setStatus(EUploadStatus.Error)
-            console.error(err)
         }
     }
 
@@ -139,7 +197,7 @@ export function Uploader() {
                 </div>
             </div>
 
-            {/* OUTPUT VIDEOS WITH PREDICTION LABELS AT THE BOTTOM */}
+            {/* OUTPUT VIDEOS WITH PREDICTION LABELS */}
             <div className="bg-gray-100 p-10 gap-2 flex flex-col rounded-md">
                 <div className="w-full h-full flex flex-col items-center gap-4 overflow-auto">
                     <div className="bg-gray-200 rounded-md h-full w-full flex items-center justify-center">
@@ -150,39 +208,57 @@ export function Uploader() {
                                 <div className="size-10 animate-spin rounded-full h-8 w-8 border-t-2 border-b-2"></div>
                             </div>
                         ) : status === EUploadStatus.Success && resultURL ? (
-                            // <img
-                            //     src={resultURL}
-                            //     className="max-h-full max-w-full object-contain"
-                            // />
-                            <video
-                                poster={resultURL} muted>
-                                <source src={resultURL} type="video/mp4"></source>
-                            </video>
+                            Object.values(results)[0]?.type === "image" ? (
+                                <img
+                                    key={resultURL}
+                                    src={resultURL}
+                                    alt="Detection result"
+                                    className="max-h-full max-w-full object-contain"
+                                />
+                            ) : (
+                                <video
+                                    ref={videoRef}
+                                    key={resultURL}
+                                    controls
+                                    autoPlay
+                                    muted
+                                    onTimeUpdate={handleTimeUpdate}>
+                                    <source src={resultURL} type="video/mp4" />
+                                    Your browser does not support the video tag.
+                                </video>
+                            )
                         ) : null}
                     </div>
                     <div className="w-full border py-2 px-2 rounded bg-white">
                         {Object.keys(results).length > 0 ? (
-                            <span>
-                                <div>
-                                    {Object.entries(results).map(([key, value]) => (
-                                        <div key={key}>
-                                            <div>
-                                                {Array.isArray(value.detections) ? (
-                                                    value.detections.map((detection) => (
-                                                        <div key={detection.class_name}>
-                                                            <p>{detection.class_name}: {(detection.confidence).toFixed(2)}</p>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div>
-                                                        <p>{value.detections.class_name}: {(value.detections.confidence).toFixed(2)}</p>
-                                                    </div>
-                                                )}
-                                            </div>
+                            <div>
+                                {Object.values(results)[0]?.type === "video" && (
+                                    <div className="mb-2 text-sm text-gray-600">
+                                        <div className="flex justify-between">
+                                            <span>Current time: {currentTime.toFixed(2)}s</span>
+                                            {Object.values(results)[0]?.fps && (
+                                                <span>Frame: {Math.round(currentTime * (Object.values(results)[0]?.fps || 30))}</span>
+                                            )}
                                         </div>
-                                    ))}
+                                    </div>
+                                )}
+                                <div>
+                                    {/* Show current frame detections */}
+                                    {currentFrameDetections.length > 0 ? (
+                                        <div>
+                                            <h6 className="font-semibold mb-1">Detected signs:</h6>
+                                            {currentFrameDetections.map((detection, index) => (
+                                                <div key={`${detection.class_name}-${index}`} className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                                    <p className="flex-1">{detection.class_name}: {(detection.confidence).toFixed(2)}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500">No signs detected in this frame</p>
+                                    )}
                                 </div>
-                            </span>
+                            </div>
                         ) : (
                             <h5 className="text-gray-400">No predictions available</h5>
                         )}

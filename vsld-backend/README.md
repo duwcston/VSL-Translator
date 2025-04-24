@@ -2,7 +2,7 @@
 
 # Create virtual environment
 ```bash
-python -m venv venv
+python -m venv .venv
 ```
 
 # Access to virtual env
