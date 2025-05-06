@@ -1,4 +1,4 @@
-import { Realtime } from "../UI/Realtime"
+import { Realtime } from "../components/Realtime"
 
 export function RealtimeSection() {
     return (

@@ -1,4 +1,4 @@
-import { Uploader } from "../UI/Uploader";
+import { Uploader } from "../components/Uploader";
 
 export function UploadSection() {
     return (

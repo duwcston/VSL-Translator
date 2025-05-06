@@ -1,8 +1,8 @@
 import React from "react"
-import Button from "./Button";
-import { EUploadStatus } from "../../types/FileIntermediate";
-import useResultsApi from "../../api/resultsApi";
-import { DetectionResponse, Detection, FrameDetection } from "../../types/DetectionResponse";
+import Button from "./UI/Button";
+import { EUploadStatus } from "../types/FileIntermediate";
+import useResultsApi from "../api/resultsApi";
+import { DetectionResponse, Detection, FrameDetection } from "../types/DetectionResponse";
 
 const ALLOWED_FILE_TYPES = ['video/quicktime', 'video/mp4', 'image/jpeg', 'image/png', 'image/jpg']
 

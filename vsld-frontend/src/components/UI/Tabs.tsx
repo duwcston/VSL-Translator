@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { UploadSection } from './layout/UploadSection';
-import { RealtimeSection } from './layout/RealtimeSection';
+import { UploadSection } from '../../layout/UploadSection';
+import { RealtimeSection } from '../../layout/RealtimeSection';
 
 export default function Tabs() {
     const [activeTab, setActiveTab] = useState('upload');
