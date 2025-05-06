@@ -1,9 +1,12 @@
-import { Realtime } from "../components/Realtime"
+import React from "react";
+import Realtime from "../components/Realtime";
 
-export function RealtimeSection() {
+const RealtimeSection: React.FC = () => {
     return (
-        <div className="bg-gray-100 p-10 gap-2 flex flex-col rounded-md w-full h-full">
+        <div className="container mx-auto">
             <Realtime />
         </div>
-    )
-}
+    );
+};
+
+export default RealtimeSection;

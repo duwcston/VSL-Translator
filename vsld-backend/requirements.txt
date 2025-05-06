@@ -4,3 +4,4 @@ opencv-python==4.11.0.86
 moviepy===1.0.3
 uvicorn===0.22.0
 python-multipart===0.0.20
+websockets==12.0

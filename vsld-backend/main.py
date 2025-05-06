@@ -4,13 +4,18 @@ import shutil
 from typing import Dict, List, Optional
 from functools import lru_cache
 import moviepy.editor as moviepy
+import base64
+import numpy as np
+import json
+from io import BytesIO
 
-from fastapi import FastAPI, File, HTTPException, status
+from fastapi import FastAPI, File, HTTPException, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from ultralytics import YOLO
 import cv2
 from fastapi import UploadFile
+import torch
 
 # Constants
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
@@ -20,6 +25,7 @@ CONF_THRESHOLD = 0.6
 TEMP_DIR = Path("temp_files")
 PREDICTION_DIR = Path("runs/detect/predict")
 CHUNK_SIZE = 1024 * 1024  # 1MB chunks for streaming
+WEBSOCKET_CONF_THRESHOLD = 0.4  # Lower threshold for real-time detection to be more sensitive
 
 TEMP_DIR.mkdir(exist_ok=True)
 
@@ -44,7 +50,12 @@ app.add_middleware(
 @lru_cache(maxsize=1)
 def get_model():
     """Load and cache the YOLO model"""
-    return YOLO("models/yolo11s.pt")
+    model = YOLO("models/yolo11s.pt")
+    # Enable GPU if available for faster inference
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device == "cuda":
+        model.to(device).half()  # Use half precision for faster inference
+    return model
 
 def cleanup_runs_directory():
     """Clean up the runs directory before new predictions"""
@@ -159,6 +170,15 @@ def process_video_frame_by_frame(video_path: Path, model) -> List[Dict]:
     cap.release()
     return frame_detections, fps
 
+async def stream_video_file(file_path: Path):
+    """Async generator to stream video files in chunks"""
+    with open(file_path, 'rb') as video_file:
+        while True:
+            chunk = video_file.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            yield chunk
+
 @app.get("/")
 def read_root():
     return {
@@ -208,7 +228,7 @@ async def predict_objects(file: UploadFile = File(...)):
                 )
             
             frame_detections, fps = process_video_frame_by_frame(temp_path, model)
-            results = model.predict(source=temp_path, save=True, conf=CONF_THRESHOLD)
+            results = model.predict(source=temp_path, save=True, conf=CONF_THRESHOLD, verbose=False)
             
             avi_files = list(PREDICTION_DIR.glob("*.avi"))
             if avi_files:
@@ -263,7 +283,7 @@ async def predict_objects(file: UploadFile = File(...)):
                     detail="Failed to read image, it may be corrupted"
                 )
                 
-            results = model.predict(source=image, save=True, conf=CONF_THRESHOLD)
+            results = model.predict(source=image, save=True, conf=CONF_THRESHOLD, verbose=False)
             detections = process_detection_results(results)
             
             return {
@@ -320,11 +340,139 @@ async def get_prediction_result():
             headers={"Content-Disposition": f"inline; filename={file_path.name}"}
         )
 
-async def stream_video_file(file_path: Path):
-    """Async generator to stream video files in chunks"""
-    with open(file_path, 'rb') as video_file:
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/detect")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    model = get_model()
+    
+    # Frame processing variables
+    frame_count = 0
+    skip_frames = 0  # Process every frame by default
+    resize_factor = 1.0  # No resize by default
+    input_size = 320  # Default smaller input size for faster processing
+    
+    try:
         while True:
-            chunk = video_file.read(CHUNK_SIZE)
-            if not chunk:
-                break
-            yield chunk
+            data = await websocket.receive_text()
+            try:
+                # Parse the data which should contain a base64 encoded image
+                data_json = json.loads(data)
+                if "image" not in data_json:
+                    await websocket.send_json({"error": "No image data received"})
+                    continue
+                
+                # Update processing parameters if provided
+                if "skip_frames" in data_json:
+                    skip_frames = int(data_json["skip_frames"])
+                if "resize_factor" in data_json:
+                    resize_factor = float(data_json["resize_factor"])
+                if "input_size" in data_json:
+                    input_size = int(data_json["input_size"])
+                
+                # Frame skipping logic
+                frame_count += 1
+                if skip_frames > 0 and frame_count % (skip_frames + 1) != 0:
+                    # Return empty results for skipped frames
+                    await websocket.send_json({
+                        "timestamp": data_json.get("timestamp", None),
+                        "detections": [],
+                        "skipped": True
+                    })
+                    continue
+                
+                # Decode the base64 image
+                img_data = base64.b64decode(data_json["image"].split(",")[1])
+                img_array = np.frombuffer(img_data, dtype=np.uint8)
+                frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                
+                if frame is None:
+                    await websocket.send_json({"error": "Invalid image data"})
+                    continue
+                
+                # Resize image if resize_factor is not 1.0
+                if resize_factor != 1.0:
+                    h, w = frame.shape[:2]
+                    new_h, new_w = int(h * resize_factor), int(w * resize_factor)
+                    frame = cv2.resize(frame, (new_w, new_h))
+                
+                # Process the frame with YOLO - use optimized parameters
+                results = model.predict(
+                    source=frame, 
+                    conf=WEBSOCKET_CONF_THRESHOLD, 
+                    verbose=False,
+                    imgsz=input_size,  # Smaller input size
+                    augment=False,     # No augmentation
+                    retina_masks=False,  # Disable retina masks for speed
+                )
+                
+                # Process detections
+                detections = []
+                if results and results[0].boxes:
+                    for box in results[0].boxes:
+                        class_id = int(box.cls[0])
+                        class_name = model.names[class_id]
+                        confidence = float(box.conf[0])
+                        
+                        # Only include detections above threshold
+                        if confidence >= WEBSOCKET_CONF_THRESHOLD:
+                            coords = box.xyxy[0].tolist()  # x1, y1, x2, y2
+                            
+                            # Scale bbox coordinates if image was resized
+                            if resize_factor != 1.0:
+                                coords = [c / resize_factor for c in coords]
+                                
+                            detections.append({
+                                "class_name": class_name,
+                                "confidence": confidence,
+                                "bbox": coords
+                            })
+                
+                # Return the processed results
+                response = {
+                    "timestamp": data_json.get("timestamp", None),
+                    "detections": detections
+                }
+                
+                # Optionally return the annotated image
+                if data_json.get("return_image", False):
+                    # If image was resized, we need to use original size for visualization
+                    if resize_factor != 1.0:
+                        h, w = frame.shape[:2]
+                        frame = cv2.resize(frame, (int(w / resize_factor), int(h / resize_factor)))
+                    
+                    # Draw predictions on the frame
+                    for det in detections:
+                        x1, y1, x2, y2 = map(int, det["bbox"])
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                        label = f"{det['class_name']}: {det['confidence']:.2f}"
+                        cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    
+                    # Encode the annotated frame to send back
+                    _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])  # Lower quality for faster transfer
+                    img_str = base64.b64encode(buffer).decode('utf-8')
+                    response["image"] = f"data:image/jpeg;base64,{img_str}"
+                
+                await websocket.send_json(response)
+                
+            except json.JSONDecodeError:
+                await websocket.send_json({"error": "Invalid JSON data"})
+            except Exception as e:
+                await websocket.send_json({"error": f"Processing error: {str(e)}"})
+                
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
