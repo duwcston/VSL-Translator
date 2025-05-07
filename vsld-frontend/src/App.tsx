@@ -1,5 +1,5 @@
-import { Header } from "./components/Header";
-import Tabs from "./components/Tabs";
+import { Header } from "./components/UI/Header";
+import Tabs from "./components/UI/Tabs";
 
 function App() {
   return (
