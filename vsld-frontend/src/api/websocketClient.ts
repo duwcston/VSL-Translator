@@ -1,11 +1,13 @@
 // WebSocket client for real-time detection
 type WebSocketCallback = (data: unknown) => void;
 type WebSocketErrorCallback = (error: unknown) => void;
+const url = import.meta.env.VITE_BACKEND_URL
 
 class WebSocketClient {
     private socket: WebSocket | null = null;
     private isConnected: boolean = false;
-    private url: string = 'ws://localhost:8000/ws/detect';
+    // private wsApi: string = 'ws://localhost:8000/ws/detect';
+    private wsApi: string = `${url}/ws/detect`;
     private onMessageCallback: WebSocketCallback | null = null;
     private onErrorCallback: WebSocketErrorCallback | null = null;
     private reconnectAttempts: number = 0;
@@ -27,7 +29,7 @@ class WebSocketClient {
                 return;
             }
 
-            this.socket = new WebSocket(this.url);
+            this.socket = new WebSocket(this.wsApi);
 
             this.socket.onopen = () => {
                 this.isConnected = true;

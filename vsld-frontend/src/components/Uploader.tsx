@@ -6,7 +6,7 @@ import { DetectionResponse, Detection, FrameDetection } from "../types/Detection
 
 const ALLOWED_FILE_TYPES = ['video/quicktime', 'video/mp4', 'image/jpeg', 'image/png', 'image/jpg']
 
-export function Uploader() {
+export default function Uploader() {
     const [file, setFile] = React.useState<File | null>(null)
     const [isDragging, setIsDragging] = React.useState(false)
     const [status, setStatus] = React.useState<EUploadStatus>(EUploadStatus.Idle)
@@ -146,63 +146,88 @@ export function Uploader() {
     }
 
     return (
-        <div className="p-4 grid grid-cols-2 gap-4">
-            <div className="bg-gray-100 p-10 items-center gap-2 flex flex-col rounded-md">
-                <div className="w-full h-full flex flex-col items-center gap-4 overflow-auto">
-                    <div
-                        className={`
-                            lg:h-[300px] lg:w-[500px] 
-                            md:h-[300px] md:w-[300px]
-                            border-dashed border-2 rounded-md ${isDragging ? `border-blue-600` : `border-black`}`}
-                    >
+        <div className="flex flex-col gap-4 p-4">
+            {status === EUploadStatus.Error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    Error uploading file. Please try again.
+                </div>
+            )}
+
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="w-full md:w-1/2">
+                    <div className="bg-gray-100 rounded-lg overflow-hidden p-4">
                         <div
-                            className="h-full w-full flex justify-center items-center hover:cursor-pointer"
-                            onDragEnter={onDragEnter}
-                            onDragOver={onDragOver}
-                            onDragLeave={onDragLeave}
-                            onDrop={onDrop}
-                            onClick={onClick}
+                            className={`
+                                h-85 w-full flex justify-center items-center hover:cursor-pointer
+                                border-dashed border-2 rounded-md ${isDragging ? `border-blue-600` : `border-gray-400`}`}
                         >
-                            {isDragging ? (
-                                <div>Drop file here</div>
-                            ) : (
-                                <div className="flex gap-1">
-                                    <span>Drop your file here or</span>
-                                    <span className="hover:underline hover:cursor-pointer font-semibold text-[#0074EF]">
-                                        Choose
-                                    </span>
-                                    <input
-                                        ref={inputRef}
-                                        className="hidden"
-                                        type="file"
-                                        accept=".mp4, .mov, .jpeg, .png, .jpg"
-                                        multiple
-                                        onChange={(event) => handleFileChange(event)}
-                                    />
-                                </div>
-                            )}
+                            <div
+                                className="h-full w-full flex justify-center items-center hover:cursor-pointer"
+                                onDragEnter={onDragEnter}
+                                onDragOver={onDragOver}
+                                onDragLeave={onDragLeave}
+                                onDrop={onDrop}
+                                onClick={onClick}
+                            >
+                                {isDragging ? (
+                                    <div className="text-blue-600 font-medium">Drop file here</div>
+                                ) : (
+                                    <div className="flex gap-1 items-center">
+                                        <span>Drop your file here or</span>
+                                        <span className="hover:underline hover:cursor-pointer font-semibold text-[#0074EF]">
+                                            Choose
+                                        </span>
+                                        <input
+                                            ref={inputRef}
+                                            className="hidden"
+                                            type="file"
+                                            accept=".mp4, .mov, .jpeg, .png, .jpg"
+                                            multiple
+                                            onChange={(event) => handleFileChange(event)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {file && (
+                            <div className="mt-4 p-2 bg-gray-50 rounded">
+                                <h3 className="font-bold text-sm mb-1">File Information</h3>
+                                <p className="text-sm">File name: {file.name}</p>
+                                <p className="text-sm">File size: {convertFileSize(file.size)}</p>
+                                <p className="text-sm">File type: {file.type}</p>
+                            </div>
+                        )}
+
+                        {status === EUploadStatus.Success && (
+                            <div className="mt-2 text-sm text-green-500 font-medium">
+                                File uploaded successfully
+                            </div>
+                        )}
+
+                        <div className="mt-4 flex flex-col gap-2">
+                            <Button
+                                width="full"
+                                height="auto"
+                                label={status === EUploadStatus.Uploading ? "Uploading..." : "Upload"}
+                                onClick={handleFileUpload}
+                            />
+                            <Button
+                                width="full"
+                                height="auto"
+                                label="Clear"
+                                onClick={handleClear}
+                            />
                         </div>
                     </div>
-                    {file && (
-                        <div className="text-sm">
-                            <p>File name: {file.name}</p>
-                            <p>File size: {convertFileSize(file.size)}</p>
-                            <p>File.type: {file.type}</p>
-                        </div>
-                    )}
-                    {status === EUploadStatus.Success && <p className="text-sm text-green-500">File uploaded successfully</p>}
-                    {status === EUploadStatus.Error && <p className="text-sm text-red-500">Error uploading file</p>}
-                    <Button width="full" height="auto" label="Upload" onClick={handleFileUpload}></Button>
-                    <Button width="full" height="auto" label="Clear" onClick={handleClear}></Button>
                 </div>
-            </div>
 
-            {/* OUTPUT VIDEOS WITH PREDICTION LABELS */}
-            <div className="bg-gray-100 p-10 gap-2 flex flex-col rounded-md">
-                <div className="w-full h-full flex flex-col items-center gap-4 overflow-auto">
-                    <div className="bg-gray-200 rounded-md h-full w-full flex items-center justify-center">
+                <div className="w-full md:w-1/2">
+                    <div className="bg-gray-100 rounded-lg overflow-hidden min-h-[360px] flex justify-center items-center">
                         {status === EUploadStatus.Idle ? (
-                            <span className="flex items-center justify-center">📷</span>
+                            <div className="text-center text-gray-500">
+                                Upload a file to see detection results
+                            </div>
                         ) : status === EUploadStatus.Uploading ? (
                             <div className="flex items-center justify-center cursor-wait">
                                 <div className="size-10 animate-spin rounded-full h-8 w-8 border-t-2 border-b-2"></div>
@@ -222,6 +247,7 @@ export function Uploader() {
                                     controls
                                     autoPlay
                                     muted
+                                    className="w-full"
                                     onTimeUpdate={handleTimeUpdate}>
                                     <source src={resultURL} type="video/mp4" />
                                     Your browser does not support the video tag.
@@ -229,39 +255,49 @@ export function Uploader() {
                             )
                         ) : null}
                     </div>
-                    <div className="w-full border py-2 px-2 rounded bg-white">
-                        {Object.keys(results).length > 0 ? (
-                            <div>
-                                {Object.values(results)[0]?.type === "video" && (
-                                    <div className="mb-2 text-sm text-gray-600">
-                                        <div className="flex justify-between">
-                                            <span>Current time: {currentTime.toFixed(2)}s</span>
-                                            {Object.values(results)[0]?.fps && (
-                                                <span>Frame: {Math.round(currentTime * (Object.values(results)[0]?.fps || 30))}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
+
+                    <div className="mt-4">
+                        <h3 className="font-bold text-lg">Detections</h3>
+                        <div className="mt-2 max-h-[200px] overflow-y-auto bg-gray-50 rounded p-2">
+                            {Object.keys(results).length > 0 ? (
                                 <div>
+                                    {Object.values(results)[0]?.type === "video" && (
+                                        <div className="mb-2 text-sm text-gray-600">
+                                            <div className="flex justify-between">
+                                                <span>Current time: {currentTime.toFixed(2)}s</span>
+                                                {Object.values(results)[0]?.fps && (
+                                                    <span>Frame: {Math.round(currentTime * (Object.values(results)[0]?.fps || 30))}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Show current frame detections */}
                                     {currentFrameDetections.length > 0 ? (
-                                        <div>
-                                            <h6 className="font-semibold mb-1">Detected signs:</h6>
+                                        <ul className="divide-y divide-gray-200">
                                             {currentFrameDetections.map((detection, index) => (
-                                                <div key={`${detection.class_name}-${index}`} className="flex items-center gap-2">
-                                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                                    <p className="flex-1">{detection.class_name}: {(detection.confidence).toFixed(2)}</p>
-                                                </div>
+                                                <li key={`${detection.class_name}-${index}`} className="py-2">
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">{detection.class_name}</span>
+                                                        <span className="text-gray-600">
+                                                            {(detection.confidence * 100).toFixed(1)}%
+                                                        </span>
+                                                    </div>
+                                                </li>
                                             ))}
-                                        </div>
+                                        </ul>
                                     ) : (
-                                        <p className="text-gray-500">No signs detected in this frame</p>
+                                        <p className="text-gray-500 text-center py-4">
+                                            No signs detected in this frame
+                                        </p>
                                     )}
                                 </div>
-                            </div>
-                        ) : (
-                            <h5 className="text-gray-400">No predictions available</h5>
-                        )}
+                            ) : (
+                                <p className="text-gray-500 text-center py-4">
+                                    No predictions available
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

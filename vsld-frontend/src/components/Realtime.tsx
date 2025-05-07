@@ -1,22 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Button from "./UI/Button";
 import websocketClient from "../api/websocketClient";
+import { Detection, RealtimeDetectionResult } from "../types/DetectionResponse";
 
-interface Detection {
-    class_name: string;
-    confidence: number;
-    bbox: number[];
+interface RealtimeProps {
+    isActive?: boolean;
 }
 
-interface DetectionResult {
-    timestamp: number;
-    detections: Detection[];
-    image?: string;
-    error?: string;
-    skipped?: boolean;
-}
-
-const Realtime: React.FC = () => {
+const Realtime: React.FC<RealtimeProps> = ({ isActive = true }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isStreaming, setIsStreaming] = useState(false);
@@ -37,7 +28,7 @@ const Realtime: React.FC = () => {
 
     // Handle detection results from the WebSocket
     const handleDetectionResult = (data: unknown) => {
-        const result = data as DetectionResult;
+        const result = data as RealtimeDetectionResult;
         if (result.error) {
             setErrorMessage(result.error);
             return;
@@ -146,7 +137,9 @@ const Realtime: React.FC = () => {
 
             websocketClient.disconnect();
             setIsStreaming(false);
-
+            setProcessedImage(null);
+            setDetections([]);
+            lastDetections.current = [];
         } else {
             // Start webcam if not already started
             if (!streamRef.current) {
@@ -175,11 +168,24 @@ const Realtime: React.FC = () => {
         }
     };
 
-    // Initialize webcam on component mount
     useEffect(() => {
-        startWebcam();
+        if (!isActive && isStreaming) {
+            if (frameInterval.current) {
+                clearInterval(frameInterval.current);
+                frameInterval.current = null;
+            }
 
-        // Cleanup on component unmount
+            websocketClient.disconnect();
+            setIsStreaming(false);
+            stopWebcam();
+        }
+    }, [isActive, isStreaming]);
+
+    useEffect(() => {
+        if (isActive) {
+            startWebcam();
+        }
+
         return () => {
             if (frameInterval.current) {
                 clearInterval(frameInterval.current);
@@ -187,7 +193,7 @@ const Realtime: React.FC = () => {
             websocketClient.disconnect();
             stopWebcam();
         };
-    }, []);
+    }, [isActive]);
 
     // Update frame rate when it changes
     useEffect(() => {

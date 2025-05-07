@@ -1,15 +1,7 @@
 export interface Detection {
     class_name: string;
     confidence: number;
-    bbox?: number[];  // Optional bounding box coordinates [x1, y1, x2, y2]
-}
-
-export interface DetectionResult {
-    detections: Detection[];
-    type?: "image" | "video";
-    video_path?: string;
-    fps?: number;
-    warning?: string;
+    bbox?: number[];
 }
 
 export interface RealtimeDetectionResult {
@@ -17,4 +9,18 @@ export interface RealtimeDetectionResult {
     detections: Detection[];
     image?: string;  // Base64 encoded image with annotations
     error?: string;
+    skipped?: boolean;
+}
+
+export interface FrameDetection {
+    frame_number: number;
+    timestamp: number;
+    detections: Detection[];
+}
+
+export interface DetectionResponse {
+    detections: Detection[] | Detection | FrameDetection[];
+    type?: "video" | "image";
+    video_path?: string;
+    fps?: number;
 }

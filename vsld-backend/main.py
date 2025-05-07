@@ -7,7 +7,8 @@ import moviepy.editor as moviepy
 import base64
 import numpy as np
 import json
-from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+import io
 
 from fastapi import FastAPI, File, HTTPException, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +26,24 @@ CONF_THRESHOLD = 0.6
 TEMP_DIR = Path("temp_files")
 PREDICTION_DIR = Path("runs/detect/predict")
 CHUNK_SIZE = 1024 * 1024  # 1MB chunks for streaming
-WEBSOCKET_CONF_THRESHOLD = 0.4  # Lower threshold for real-time detection to be more sensitive
+WEBSOCKET_CONF_THRESHOLD = 0.6  # Lower threshold for real-time detection to be more sensitive
+FONT_DIR = Path("fonts")
+FONT_DIR.mkdir(exist_ok=True)
+FONT_PATH = FONT_DIR / "arial.ttf"
+
+# Download Arial font if it doesn't exist
+if not FONT_PATH.exists():
+    try:
+        # Check if font exists in system fonts (Windows path)
+        windows_font = Path("C:/Windows/Fonts/arial.ttf")
+        if windows_font.exists():
+            # Copy from system fonts
+            shutil.copy(windows_font, FONT_PATH)
+            print(f"Copied Arial font from system fonts to {FONT_PATH}")
+        else:
+            print(f"Arial font not found. Please place arial.ttf in the {FONT_DIR} directory.")
+    except Exception as e:
+        print(f"Error setting up font: {e}")
 
 TEMP_DIR.mkdir(exist_ok=True)
 
@@ -50,11 +68,11 @@ app.add_middleware(
 @lru_cache(maxsize=1)
 def get_model():
     """Load and cache the YOLO model"""
-    model = YOLO("models/yolo11s.pt")
+    model = YOLO("models/20words.pt")
     # Enable GPU if available for faster inference
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cuda":
-        model.to(device).half()  # Use half precision for faster inference
+        model.to(device).half()
     return model
 
 def cleanup_runs_directory():
@@ -157,7 +175,72 @@ def process_video_frame_by_frame(video_path: Path, model) -> List[Dict]:
         
         # Run YOLO detection on the frame
         results = model.predict(source=frame, conf=CONF_THRESHOLD, verbose=False)
-        frame_result = process_detection_results(results, frame_number, timestamp)
+        
+        # Process the results and get detections
+        detections = []
+        if results and results[0].boxes:
+            for box in results[0].boxes:
+                class_id = int(box.cls[0])
+                class_name = model.names[class_id]
+                confidence = float(box.conf[0])
+                
+                if confidence >= CONF_THRESHOLD:
+                    coords = box.xyxy[0].tolist()  # x1, y1, x2, y2
+                    detections.append({
+                        "class_name": class_name,
+                        "confidence": confidence,
+                        "bbox": coords
+                    })
+            
+            # Draw predictions on the frame for visualization
+            for det in detections:
+                x1, y1, x2, y2 = map(int, det["bbox"])
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                label = f"{det['class_name']}: {det['confidence']:.2f}"
+                
+                # Use PIL for better Vietnamese text rendering
+                if FONT_PATH.exists():
+                    # Convert OpenCV image to PIL format
+                    pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                    draw = ImageDraw.Draw(pil_img)
+                    
+                    # Load Arial font
+                    try:
+                        font_size = 16
+                        font = ImageFont.truetype(str(FONT_PATH), font_size)
+                        
+                        # Calculate background box for text
+                        text_width, text_height = draw.textbbox((0, 0), label, font=font)[2:]
+                        
+                        # Draw background rectangle
+                        draw.rectangle(
+                            [(x1, y1 - text_height - 4), (x1 + text_width, y1)], 
+                            fill=(0, 255, 0)
+                        )
+                        
+                        # Draw text with proper Vietnamese support
+                        draw.text((x1, y1 - text_height - 2), label, font=font, fill=(0, 0, 0))
+                        
+                        # Convert back to OpenCV format
+                        frame = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                    except Exception as e:
+                        print(f"Error using PIL for text: {e}")
+                        # Fallback to OpenCV
+                        text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_DUPLEX, 0.6, 1)[0]
+                        cv2.rectangle(frame, (x1, y1 - 20), (x1 + text_size[0], y1), (0, 255, 0), -1)
+                        cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0), 1)
+                else:
+                    # Fallback to OpenCV
+                    text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_DUPLEX, 0.6, 1)[0]
+                    cv2.rectangle(frame, (x1, y1 - 20), (x1 + text_size[0], y1), (0, 255, 0), -1)
+                    cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0), 1)
+                    
+        # Add the processed frame to our results
+        frame_result = {
+            "frame_number": frame_number,
+            "timestamp": timestamp,
+            "detections": detections
+        }
         frame_detections.append(frame_result)
         
         frame_number += 1
@@ -359,17 +442,16 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     model = get_model()
     
-    # Frame processing variables
+    # Default settings
     frame_count = 0
-    skip_frames = 0  # Process every frame by default
-    resize_factor = 1.0  # No resize by default
-    input_size = 320  # Default smaller input size for faster processing
+    skip_frames = 0
+    resize_factor = 1.0
+    input_size = 320
     
     try:
         while True:
             data = await websocket.receive_text()
             try:
-                # Parse the data which should contain a base64 encoded image
                 data_json = json.loads(data)
                 if "image" not in data_json:
                     await websocket.send_json({"error": "No image data received"})
@@ -386,7 +468,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Frame skipping logic
                 frame_count += 1
                 if skip_frames > 0 and frame_count % (skip_frames + 1) != 0:
-                    # Return empty results for skipped frames
                     await websocket.send_json({
                         "timestamp": data_json.get("timestamp", None),
                         "detections": [],
@@ -414,9 +495,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     source=frame, 
                     conf=WEBSOCKET_CONF_THRESHOLD, 
                     verbose=False,
-                    imgsz=input_size,  # Smaller input size
-                    augment=False,     # No augmentation
-                    retina_masks=False,  # Disable retina masks for speed
+                    imgsz=input_size,
+                    augment=False,
+                    retina_masks=False,
                 )
                 
                 # Process detections
@@ -459,7 +540,43 @@ async def websocket_endpoint(websocket: WebSocket):
                         x1, y1, x2, y2 = map(int, det["bbox"])
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         label = f"{det['class_name']}: {det['confidence']:.2f}"
-                        cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                        
+                        # Use PIL for better Vietnamese text rendering with Arial font
+                        if FONT_PATH.exists():
+                            # Convert OpenCV image to PIL format
+                            pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                            draw = ImageDraw.Draw(pil_img)
+                            
+                            # Load Arial font
+                            try:
+                                font_size = 16
+                                font = ImageFont.truetype(str(FONT_PATH), font_size)
+                                
+                                # Calculate background box for text
+                                text_width, text_height = draw.textbbox((0, 0), label, font=font)[2:]
+                                
+                                # Draw background rectangle
+                                draw.rectangle(
+                                    [(x1, y1 - text_height - 4), (x1 + text_width, y1)], 
+                                    fill=(0, 255, 0)
+                                )
+                                
+                                # Draw text with proper Vietnamese support
+                                draw.text((x1, y1 - text_height - 2), label, font=font, fill=(0, 0, 0))
+                                
+                                # Convert back to OpenCV format
+                                frame = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                            except Exception as e:
+                                print(f"Error using PIL for text: {e}")
+                                # Fallback to OpenCV if PIL fails
+                                text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_DUPLEX, 0.6, 1)[0]
+                                cv2.rectangle(frame, (x1, y1 - 20), (x1 + text_size[0], y1), (0, 255, 0), -1)
+                                cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0), 1)
+                        else:
+                            # Fallback to OpenCV if font file doesn't exist
+                            text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_DUPLEX, 0.6, 1)[0]
+                            cv2.rectangle(frame, (x1, y1 - 20), (x1 + text_size[0], y1), (0, 255, 0), -1)
+                            cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0), 1)
                     
                     # Encode the annotated frame to send back
                     _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])  # Lower quality for faster transfer

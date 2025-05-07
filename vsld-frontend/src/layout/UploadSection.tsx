@@ -1,8 +1,8 @@
-import { Uploader } from "../components/Uploader";
+import Uploader from "../components/Uploader";
 
-export function UploadSection() {
+export default function UploadSection() {
     return (
-        <div>
+        <div className="container mx-auto">
             <Uploader />
         </div>
     )

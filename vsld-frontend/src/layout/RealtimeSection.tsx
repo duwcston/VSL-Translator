@@ -1,10 +1,14 @@
 import React from "react";
 import Realtime from "../components/Realtime";
 
-const RealtimeSection: React.FC = () => {
+interface RealtimeSectionProps {
+    isActive?: boolean;
+}
+
+const RealtimeSection: React.FC<RealtimeSectionProps> = ({ isActive = true }) => {
     return (
         <div className="container mx-auto">
-            <Realtime />
+            <Realtime isActive={isActive} />
         </div>
     );
 };

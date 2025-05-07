@@ -1,9 +1,17 @@
-import { useState } from 'react';
-import { UploadSection } from '../../layout/UploadSection';
-import RealtimeSection  from '../../layout/RealtimeSection';
+import { useState, useEffect } from 'react';
+import UploadSection from '../../layout/UploadSection';
+import RealtimeSection from '../../layout/RealtimeSection';
 
 export default function Tabs() {
-    const [activeTab, setActiveTab] = useState('upload');
+    const [activeTab, setActiveTab] = useState(() => {
+        // Get saved tab from localStorage or default to 'upload'
+        return localStorage.getItem('activeTab') || 'upload';
+    });
+
+    // Save active tab to localStorage when it changes
+    useEffect(() => {
+        localStorage.setItem('activeTab', activeTab);
+    }, [activeTab]);
 
     return (
         <div>
@@ -21,8 +29,12 @@ export default function Tabs() {
                     Real - time Detection
                 </button>
             </div>
+
             <div className="mt-4 flex justify-center">
-                {activeTab === 'upload' ? <UploadSection /> : <RealtimeSection />}
+                {activeTab === 'upload' ?
+                    <UploadSection /> :
+                    <RealtimeSection isActive={activeTab === 'realtime'} />
+                }
             </div>
         </div>
     );
