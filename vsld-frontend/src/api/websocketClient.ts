@@ -7,7 +7,7 @@ class WebSocketClient {
     private socket: WebSocket | null = null;
     private isConnected: boolean = false;
     // private wsApi: string = 'ws://localhost:8000/ws/detect';
-    private wsApi: string = `${url}/ws/detect`;
+    private wsApi: string = `${url}/v1/detections/stream`;
     private onMessageCallback: WebSocketCallback | null = null;
     private onErrorCallback: WebSocketErrorCallback | null = null;
     private reconnectAttempts: number = 0;
