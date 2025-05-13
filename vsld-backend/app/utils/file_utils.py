@@ -14,7 +14,7 @@ import os
 import cv2
 import base64
 import numpy as np
-from typing import Tuple, Optional, List, Dict, Any, Set, Union
+from typing import Tuple, Set, Union
 
 from app.core.config import PREDICTION_DIR
 

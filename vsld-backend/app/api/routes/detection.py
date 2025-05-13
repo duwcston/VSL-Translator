@@ -1,6 +1,5 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse, FileResponse
-from typing import Dict, List, Optional
 import os
 import cv2
 from pathlib import Path

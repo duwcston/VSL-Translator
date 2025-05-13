@@ -1,13 +1,11 @@
 import cv2
 import moviepy.editor as moviepy
 from pathlib import Path
-from typing import Tuple, List, Dict, Optional, Any, BinaryIO
-import asyncio
+from typing import Tuple, List, Dict, Optional
 
 from fastapi import HTTPException, status
 
 from app.services.detector import get_detector
-from app.core.config import CONF_THRESHOLD
 
 
 async def convert_avi_to_mp4(input_path: Path, output_path: Path) -> None:

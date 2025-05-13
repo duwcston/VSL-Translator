@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import List, Set
-import os
 
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent

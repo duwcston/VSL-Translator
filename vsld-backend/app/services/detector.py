@@ -3,12 +3,11 @@ import torch
 import numpy as np
 import base64
 from time import time
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple, Optional
 from functools import lru_cache
 from ultralytics import YOLO
 
-from app.core.config import WEBSOCKET_CONF_THRESHOLD
+from app.core.config import CONF_THRESHOLD
 
 
 class SignLanguageDetector:
@@ -315,7 +314,7 @@ def get_detector(model_path: str = None, conf_threshold: float = None) -> SignLa
         model_path = DEFAULT_MODEL_PATH
         
     if conf_threshold is None:
-        conf_threshold = WEBSOCKET_CONF_THRESHOLD
+        conf_threshold = CONF_THRESHOLD
         
     return SignLanguageDetector(
         model_path=model_path,

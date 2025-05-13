@@ -1,5 +1,5 @@
 from fastapi import WebSocket, WebSocketDisconnect
-from typing import List, Dict, Any
+from typing import List
 import json
 import cv2
 import numpy as np
@@ -7,7 +7,6 @@ import base64
 from PIL import Image, ImageDraw, ImageFont
 
 from app.core.config import FONT_PATH, WEBSOCKET_CONF_THRESHOLD
-from app.utils.file_utils import decode_base64_image, encode_image_to_base64
 from app.services.detector import get_detector
 
 
