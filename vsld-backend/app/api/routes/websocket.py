@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from app.core.config import FONT_PATH, WEBSOCKET_CONF_THRESHOLD
 from app.services.detector import get_detector
+from app.services.paraphraser import get_paraphraser
 
 
 class ConnectionManager:
@@ -47,6 +48,7 @@ async def handle_websocket_detection(websocket: WebSocket):
     connection_manager = ConnectionManager()
     await connection_manager.connect(websocket)
     detector = get_detector()
+    paraphraser = get_paraphraser()
     
     # Default settings
     frame_count = 0
@@ -60,13 +62,11 @@ async def handle_websocket_detection(websocket: WebSocket):
             data = await websocket.receive_text()
             
             try:
-                # Parse JSON data
                 data_json = json.loads(data)
                 if "image" not in data_json:
                     await websocket.send_json({"error": "No image data received"})
                     continue
                 
-                # Update processing parameters if provided
                 if "skip_frames" in data_json:
                     skip_frames = int(data_json["skip_frames"])
                 if "resize_factor" in data_json:
@@ -98,8 +98,7 @@ async def handle_websocket_detection(websocket: WebSocket):
                     h, w = frame.shape[:2]
                     new_h, new_w = int(h * resize_factor), int(w * resize_factor)
                     frame = cv2.resize(frame, (new_w, new_h))
-                
-                # Process the frame with detector model
+
                 results = detector.model.predict(
                     source=frame, 
                     conf=WEBSOCKET_CONF_THRESHOLD, 
@@ -107,17 +106,16 @@ async def handle_websocket_detection(websocket: WebSocket):
                     imgsz=input_size,
                     augment=False,
                     retina_masks=False,
+                    max_det=1
                 )
-                
-                # Process detections
+
                 detections = []
                 if results and results[0].boxes:
                     for box in results[0].boxes:
                         class_id = int(box.cls[0])
                         class_name = detector.model.names[class_id]
                         confidence = float(box.conf[0])
-                        
-                        # Only include detections above threshold
+                          # Only include detections above threshold
                         if confidence >= WEBSOCKET_CONF_THRESHOLD:
                             coords = box.xyxy[0].tolist()  # x1, y1, x2, y2
                             
@@ -143,8 +141,7 @@ async def handle_websocket_detection(websocket: WebSocket):
                     if resize_factor != 1.0:
                         h, w = frame.shape[:2]
                         frame = cv2.resize(frame, (int(w / resize_factor), int(h / resize_factor)))
-                    
-                    # Draw predictions on the frame
+                      # Draw predictions on the frame
                     for det in detections:
                         x1, y1, x2, y2 = map(int, det["bbox"])
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -160,11 +157,7 @@ async def handle_websocket_detection(websocket: WebSocket):
                             try:
                                 font_size = 16
                                 font = ImageFont.truetype(str(FONT_PATH), font_size)
-                                
-                                # Calculate background box for text
                                 text_width, text_height = draw.textbbox((0, 0), label, font=font)[2:]
-                                
-                                # Draw background rectangle
                                 draw.rectangle(
                                     [(x1, y1 - text_height - 4), (x1 + text_width, y1)], 
                                     fill=(0, 255, 0)
@@ -177,16 +170,9 @@ async def handle_websocket_detection(websocket: WebSocket):
                                 frame = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
                             except Exception as e:
                                 print(f"Error using PIL for text: {e}")
-                                # Fallback to OpenCV if PIL fails
-                                text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_DUPLEX, 0.6, 1)[0]
-                                cv2.rectangle(frame, (x1, y1 - 20), (x1 + text_size[0], y1), (0, 255, 0), -1)
-                                cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0), 1)
                         else:
-                            # Fallback to OpenCV if font file doesn't exist
-                            text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_DUPLEX, 0.6, 1)[0]
-                            cv2.rectangle(frame, (x1, y1 - 20), (x1 + text_size[0], y1), (0, 255, 0), -1)
-                            cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0), 1)
-                    
+                            print(f"Font file not found: {FONT_PATH}.")
+
                     # Encode the annotated frame to send back
                     _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])  # Lower quality for faster transfer
                     img_str = base64.b64encode(buffer).decode('utf-8')
