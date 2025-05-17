@@ -15,7 +15,7 @@ ALLOWED_VIDEO_EXTENSIONS: Set[str] = {".mp4", ".mov"}
 ALLOWED_EXTENSIONS: Set[str] = ALLOWED_IMAGE_EXTENSIONS.union(ALLOWED_VIDEO_EXTENSIONS)
 
 # Detection settings
-CONF_THRESHOLD: float = 0.5
+CONF_THRESHOLD: float = 0.7
 WEBSOCKET_CONF_THRESHOLD: float = 0.5
 
 # Streaming settings

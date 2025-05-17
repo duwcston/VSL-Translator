@@ -8,7 +8,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 from app.core.config import FONT_PATH, WEBSOCKET_CONF_THRESHOLD
 from app.services.detector import get_detector
-from app.services.paraphraser import get_paraphraser
 
 
 class ConnectionManager:
@@ -48,7 +47,6 @@ async def handle_websocket_detection(websocket: WebSocket):
     connection_manager = ConnectionManager()
     await connection_manager.connect(websocket)
     detector = get_detector()
-    paraphraser = get_paraphraser()
     
     # Default settings
     frame_count = 0

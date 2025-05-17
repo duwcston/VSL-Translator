@@ -8,6 +8,7 @@ from app.core.config import ALLOWED_EXTENSIONS, ALLOWED_VIDEO_EXTENSIONS, ALLOWE
 from app.utils.file_utils import is_valid_file, is_video_file, is_image_file, cleanup_runs_directory
 from app.services.detector import get_detector
 from app.services.video_processor import process_video_frame_by_frame, convert_avi_to_mp4, stream_video_file
+from app.services.paraphraser import get_paraphraser
 
 router = APIRouter(tags=["Detection"])
 
@@ -26,6 +27,61 @@ async def save_upload_file(file: UploadFile) -> Path:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"Could not save file: {str(e)}"
         )
+
+
+def generate_sentence_from_detections(detections):
+    """
+    Generate a complete sentence from detected words using the paraphraser
+    
+    Args:
+        detections: List of detections from YOLO model
+        
+    Returns:
+        A complete sentence generated from the detected words
+    """
+    if not detections:
+        return ""
+    
+    # Handle both single frame detections and multi-frame detections (for videos)
+    if isinstance(detections, list) and detections and isinstance(detections[0], dict):
+        # If this is a list of frame detections (for videos)
+        if "frame_number" in detections[0]:
+            # Collect all unique words across all frames, preserving order of first appearance
+            all_words = []
+            seen_words = set()
+            
+            for frame in detections:
+                frame_detections = frame.get("detections", [])
+                for detection in frame_detections:
+                    class_name = detection.get("class_name")
+                    if class_name and class_name not in seen_words:
+                        all_words.append(class_name)
+                        seen_words.add(class_name)
+        else:
+            # Regular list of detections for a single image
+            all_words = []
+            seen_words = set()
+            
+            for detection in detections:
+                class_name = detection.get("class_name")
+                if class_name and class_name not in seen_words:
+                    all_words.append(class_name)
+                    seen_words.add(class_name)
+    else:
+        # In case it's a single detection object
+        return ""
+    
+    # Join the words into a space-separated string
+    detected_text = " ".join(all_words)
+    
+    # If we have no words, return empty string
+    if not detected_text:
+        return ""
+        
+    paraphraser = get_paraphraser()
+    sentence = paraphraser.paraphrase(detected_text)
+    
+    return sentence
 
 
 @router.post("/detections")
@@ -89,7 +145,6 @@ async def predict_objects(file: UploadFile = File(...)):
             if avi_files:
                 avi_path = avi_files[0]
                 mp4_path = avi_path.with_suffix('.mp4')
-                
                 await convert_avi_to_mp4(avi_path, mp4_path)
                 
                 # Remove the original AVI file only if MP4 exists
@@ -104,20 +159,20 @@ async def predict_objects(file: UploadFile = File(...)):
                     "detections": frame_detections,
                     "video_path": f"runs/detect/predict/{mp4_path.name}",
                     "type": "video",
-                    "fps": fps
+                    "fps": fps,
+                    "sentence": generate_sentence_from_detections(frame_detections)
                 }
             else:
-                # Check if the model directly created an MP4
                 mp4_files = list(PREDICTION_DIR.glob("*.mp4"))
                 if mp4_files:
                     return {
                         "detections": frame_detections,
                         "video_path": f"runs/detect/predict/{mp4_files[0].name}",
                         "type": "video",
-                        "fps": fps
+                        "fps": fps,
+                        "sentence": generate_sentence_from_detections(frame_detections)
                     }
-                
-                # No video file found in the expected location
+                  # No video file found in the expected location
                 print("Warning: No video files found in prediction directory")
                 all_files = list(PREDICTION_DIR.glob("*"))
                 print(f"Files in prediction directory: {[f.name for f in all_files]}")
@@ -127,7 +182,8 @@ async def predict_objects(file: UploadFile = File(...)):
                     "video_path": None,
                     "type": "video",
                     "fps": fps,
-                    "warning": "No output video was generated"
+                    "warning": "No output video was generated",
+                    "sentence": generate_sentence_from_detections(frame_detections)
                 }
             
         elif is_image_file(file.filename, ALLOWED_IMAGE_EXTENSIONS):
@@ -145,9 +201,12 @@ async def predict_objects(file: UploadFile = File(...)):
             # Save the annotated image
             detector.model.predict(source=image, save=True, conf=CONF_THRESHOLD, verbose=False, max_det=1)
             
+            # Generate a sentence from detections
+            sentence = generate_sentence_from_detections(detections)
             return {
                 "detections": detections,
-                "type": "image"
+                "type": "image",
+                "sentence": sentence
             }
     except Exception as e:
         raise HTTPException(

@@ -270,9 +270,7 @@ export default function Uploader() {
                                                 )}
                                             </div>
                                         </div>
-                                    )}
-
-                                    {/* Show current frame detections */}
+                                    )}                                    {/* Show current frame detections */}
                                     {currentFrameDetections.length > 0 ? (
                                         <ul className="divide-y divide-gray-200">
                                             {currentFrameDetections.map((detection, index) => (
@@ -290,6 +288,14 @@ export default function Uploader() {
                                         <p className="text-gray-500 text-center py-4">
                                             No signs detected in this frame
                                         </p>
+                                    )}
+
+                                    {/* Show paraphrased sentence */}
+                                    {Object.values(results)[0]?.sentence && (
+                                        <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+                                            <h4 className="text-sm font-semibold mb-1 text-blue-800">Paraphrased Sentence:</h4>
+                                            <p className="text-gray-800">{Object.values(results)[0].sentence}</p>
+                                        </div>
                                     )}
                                 </div>
                             ) : (
