@@ -23,4 +23,5 @@ export interface DetectionResponse {
     type?: "video" | "image";
     video_path?: string;
     fps?: number;
+    sentence?: string;
 }

@@ -7,7 +7,7 @@ const useResultsApi = () => {
   const httpClient = useHttpClient()
 
   function getResult() {
-    return `${url}/yolo/result?t=${new Date().getTime()}`
+    return `${url}/v1/detections/result?t=${new Date().getTime()}`
   }
 
   async function uploadFile(
@@ -16,7 +16,7 @@ const useResultsApi = () => {
     const formData = new FormData()
     formData.append('file', file)
 
-    return await httpClient.httpPost(`${url}/yolo/predict`, formData, {
+    return await httpClient.httpPost(`${url}/v1/detections`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
