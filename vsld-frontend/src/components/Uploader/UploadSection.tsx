@@ -46,26 +46,26 @@ const UploadSection: React.FC<UploadSectionProps> = ({
                 inputRef={inputRef}
             />
 
-            {file && <FileInformation file={file} />}
-
-            {status === EUploadStatus.Success && (
+            {file && <FileInformation file={file} />}            {(status === EUploadStatus.Success || status === EUploadStatus.Processing) && (
                 <div className="mt-2 text-sm text-green-500 font-medium">
-                    File uploaded successfully
+                    {status === EUploadStatus.Success ? 'File processed successfully' : 'Processing file...'}
                 </div>
-            )}
-
-            <div className="mt-4 flex flex-col gap-2">
-                <Button
-                    width="full"
-                    height="auto"
-                    label={status === EUploadStatus.Uploading ? "Uploading..." : "Upload"}
-                    onClick={onUpload}
-                />
-                <Button
+            )}<div className="mt-4 flex flex-col gap-2">                <Button
+                width="full"
+                height="auto"
+                label={
+                    status === EUploadStatus.Uploading ? "Uploading..." :
+                        status === EUploadStatus.Processing ? "Processing..." :
+                            "Upload"
+                }
+                onClick={onUpload}
+                disabled={status === EUploadStatus.Uploading || status === EUploadStatus.Processing || !file}
+            />                <Button
                     width="full"
                     height="auto"
                     label="Clear"
                     onClick={onClear}
+                    disabled={status === EUploadStatus.Uploading || status === EUploadStatus.Processing}
                 />
             </div>
         </div>

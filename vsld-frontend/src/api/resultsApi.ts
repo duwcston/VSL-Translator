@@ -9,9 +9,9 @@ const useResultsApi = () => {
   function getResult() {
     return `${url}/v1/detections/result?t=${new Date().getTime()}`
   }
-
   async function uploadFile(
     file: File,
+    onProgress?: (progress: number) => void
   ): Promise<DetectionResponse> {
     const formData = new FormData()
     formData.append('file', file)
@@ -20,6 +20,12 @@ const useResultsApi = () => {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(progress);
+        }
+      }
     })
   }
 

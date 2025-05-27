@@ -11,7 +11,9 @@ export const useFileUpload = () => {
     const [results, setResults] = useState<Record<string, DetectionResponse>>({});
     const [resultURL, setResultURL] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState<number>(0);
-    const [currentFrameDetections, setCurrentFrameDetections] = useState<Detection[]>([]);
+    const [currentFrameDetections, setCurrentFrameDetections] = useState<Detection[]>([]); const [uploadProgress, setUploadProgress] = useState<number>(0);
+    const [processingProgress, setProcessingProgress] = useState<number>(0);
+    const [currentStage, setCurrentStage] = useState<'upload' | 'processing'>('upload');
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Update current frame detections when video time changes or results change
@@ -61,9 +63,7 @@ export const useFileUpload = () => {
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
-    };
-
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    }; const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
@@ -71,6 +71,9 @@ export const useFileUpload = () => {
         setStatus(EUploadStatus.Idle);
         setResults({});
         setCurrentFrameDetections([]);
+        setUploadProgress(0);
+        setProcessingProgress(0);
+        setCurrentStage('upload');
 
         const { files } = e.dataTransfer;
 
@@ -82,32 +85,32 @@ export const useFileUpload = () => {
 
     const handleClick = () => {
         inputRef.current?.click();
-    };
-
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    }; const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             const acceptedFiles = Array.from(event.target.files).filter((file) => ALLOWED_FILE_TYPES.includes(file.type));
             setStatus(EUploadStatus.Idle);
             setFile(acceptedFiles[0]);
             setResults({});
             setCurrentFrameDetections([]);
+            setUploadProgress(0);
+            setProcessingProgress(0);
+            setCurrentStage('upload');
         }
-    };
-
-    const handleClear = () => {
+    }; const handleClear = () => {
         setFile(null);
         setStatus(EUploadStatus.Idle);
         setResults({});
         setResultURL(null);
         setCurrentFrameDetections([]);
+        setUploadProgress(0);
+        setProcessingProgress(0);
+        setCurrentStage('upload');
     };
 
     const handleTimeUpdate = (time: number) => {
         setCurrentTime(time);
         updateCurrentFrameDetections(time, results);
-    };
-
-    return {
+    }; return {
         file,
         isDragging,
         status,
@@ -126,6 +129,12 @@ export const useFileUpload = () => {
         handleClick,
         handleFileChange,
         handleClear,
-        handleTimeUpdate
+        handleTimeUpdate,
+        uploadProgress,
+        setUploadProgress,
+        processingProgress,
+        setProcessingProgress,
+        currentStage,
+        setCurrentStage
     };
 };
