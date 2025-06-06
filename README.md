@@ -1,4 +1,4 @@
-# Vietnamese Sign Language Detection (VSLD) System
+# Sign language translation model for Vietnamese
 
 A full-stack application for Vietnamese Sign Language detection and recognition using YOLO models. The system provides both file-upload and real-time detection capabilities through a user-friendly web interface.
 
