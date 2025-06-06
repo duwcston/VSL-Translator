@@ -1,6 +1,7 @@
 export enum EUploadStatus {
     Idle = 'idle',
     Uploading = 'uploading',
+    Processing = 'processing',
     Success = 'success',
     Error = 'error',
 }

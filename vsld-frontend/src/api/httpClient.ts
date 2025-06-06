@@ -9,17 +9,17 @@ enum HTTPMethod {
 }
 
 export default function useHttpClient() {
-    async function httpRequest(url: string, method: HTTPMethod, body?: any, headers?: any) {
+    async function httpRequest(url: string, method: HTTPMethod, body?: any, config?: AxiosRequestConfig) {
 
-        const config: AxiosRequestConfig = {
+        const axiosConfig: AxiosRequestConfig = {
             url,
             method,
-            headers,
             data: body ?? undefined,
+            ...config
         }
 
         try {
-            const response = await axios(config)
+            const response = await axios(axiosConfig)
             return response.data
         } catch (error: any) {
             if (error.response) {
@@ -32,8 +32,8 @@ export default function useHttpClient() {
     async function httpGet(url: string) {
         return httpRequest(url, HTTPMethod.GET)
     }
-    async function httpPost(url: string, body: any, headers: any) {
-        return httpRequest(url, HTTPMethod.POST, body, headers)
+    async function httpPost(url: string, body: any, config?: AxiosRequestConfig) {
+        return httpRequest(url, HTTPMethod.POST, body, config)
     }
     async function httpPut(url: string, body: any) {
         return httpRequest(url, HTTPMethod.PUT, body)

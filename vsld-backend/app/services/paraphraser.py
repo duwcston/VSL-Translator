@@ -35,14 +35,6 @@ class Paraphraser:
         attention_mask = inputs.attention_mask
         output = self.model.generate(input_ids, attention_mask=attention_mask, max_length=16)
         return self.tokenizer.decode(output[0], skip_special_tokens=True)
-    
-        # inputs = self.tokenizer(text, padding='longest', max_length=16, return_tensors='pt')
-        # input_ids = inputs.input_ids
-        # attention_mask = inputs.attention_mask
-        # outputs = self.model.generate(input_ids, attention_mask=attention_mask, max_length=16,num_beams=5, num_return_sequences=5)
-        # for i, output in enumerate(outputs):
-        #     print(f'Output {i}: {self.tokenizer.decode(output, skip_special_tokens=True)}')
-    
 
 @lru_cache
 def get_paraphraser():
