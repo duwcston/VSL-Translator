@@ -1,5 +1,6 @@
 import useHttpClient from './httpClient'
 import { DetectionResponse } from '../types/DetectionResponse'
+import { API_DETECTIONS_URL } from './constants'
 
 const url = import.meta.env.VITE_BACKEND_URL
 
@@ -7,7 +8,7 @@ const useResultsApi = () => {
   const httpClient = useHttpClient()
 
   function getResult() {
-    return `${url}/v1/detections/result?t=${new Date().getTime()}`
+    return `${url}/${API_DETECTIONS_URL}/result?t=${new Date().getTime()}`
   }
   async function uploadFile(
     file: File,
@@ -16,7 +17,7 @@ const useResultsApi = () => {
     const formData = new FormData()
     formData.append('file', file)
 
-    return await httpClient.httpPost(`${url}/v1/detections`, formData, {
+    return await httpClient.httpPost(`${url}/${API_DETECTIONS_URL}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },

@@ -1,4 +1,6 @@
 import React from "react";
+import { motion } from "framer-motion";
+import { AlertCircle, Loader } from "lucide-react";
 import UploadSection from "./Uploader/UploadSection";
 import MediaDisplay from "./Uploader/MediaDisplay";
 import DetectionDisplay from "./Uploader/DetectionDisplay";
@@ -96,27 +98,67 @@ export default function Uploader() {
             setProcessingProgress(0);
         }
     } return (
-        <div className="flex flex-col gap-4 p-4">
+        <div className="space-y-6">
+            {/* Error State */}
             {status === EUploadStatus.Error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    Error uploading file. Please try again.
-                </div>
-            )}            {(status === EUploadStatus.Uploading || status === EUploadStatus.Processing) && (
-                <div className="bg-blue-50 border border-blue-200 px-4 py-3 rounded">
-                    <ProgressBar
-                        progress={currentStage === 'upload' ? uploadProgress : processingProgress}
-                        variant="default"
-                        className="mt-2"
-                        label={currentStage === 'upload' ? 'Uploading File' : 'Processing & Detecting Signs'}
-                        subLabel={currentStage === 'upload'
-                            ? 'Uploading file to server...'
-                            : 'Running sign language detection on your file...'}
-                    />
-                </div>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg shadow-sm"
+                >
+                    <div className="flex items-center">
+                        <AlertCircle className="h-5 w-5 text-red-400 mr-3" />
+                        <div>
+                            <p className="text-red-800 font-medium">Upload Error</p>
+                            <p className="text-red-600 text-sm">Error uploading file. Please try again.</p>
+                        </div>
+                    </div>
+                </motion.div>
             )}
 
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="w-full md:w-1/2">
+            {/* Processing State */}
+            {(status === EUploadStatus.Uploading || status === EUploadStatus.Processing) && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6 shadow-lg"
+                >
+                    <div className="flex items-center mb-4">
+                        <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            className="mr-3"
+                        >
+                            <Loader className="h-5 w-5 text-blue-600" />
+                        </motion.div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-800">
+                                {currentStage === 'upload' ? 'Uploading File' : 'Processing & Detecting Signs'}
+                            </h3>
+                            <p className="text-gray-600 text-sm">
+                                {currentStage === 'upload'
+                                    ? 'Uploading file to server...'
+                                    : 'Running AI sign language detection on your file...'}
+                            </p>
+                        </div>
+                    </div>                    <ProgressBar
+                        progress={currentStage === 'upload' ? uploadProgress : processingProgress}
+                        variant="gradient"
+                        className="mt-2"
+                        label=""
+                        subLabel=""
+                    />
+                </motion.div>
+            )}
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="space-y-6"
+                >
                     <UploadSection
                         file={file}
                         isDragging={isDragging}
@@ -131,9 +173,14 @@ export default function Uploader() {
                         onUpload={handleFileUpload}
                         onClear={handleClear}
                     />
-                </div>
+                </motion.div>
 
-                <div className="w-full md:w-1/2">
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-6"
+                >
                     <MediaDisplay
                         status={status}
                         resultURL={resultURL}
@@ -147,7 +194,7 @@ export default function Uploader() {
                         currentTime={currentTime}
                         currentFrameDetections={currentFrameDetections}
                     />
-                </div>
+                </motion.div>
             </div>
         </div>
     );

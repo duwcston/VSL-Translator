@@ -32,7 +32,7 @@ APP_DESCRIPTION: str = "API for visual sign language detection using YOLO models
 APP_VERSION: str = "1.0.0"
 
 # Models
-DEFAULT_MODEL_PATH: str = str(MODELS_DIR / "20words.pt")
+DEFAULT_MODEL_PATH: str = str(MODELS_DIR / "final_best.pt")
 
 # Create necessary directories
 TEMP_DIR.mkdir(exist_ok=True)

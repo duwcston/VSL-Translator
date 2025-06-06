@@ -180,9 +180,22 @@ async def handle_websocket_detection(websocket: WebSocket):
                 await websocket.send_json(response)
                 
             except json.JSONDecodeError:
-                await websocket.send_json({"error": "Invalid JSON data"})
+                try:
+                    await websocket.send_json({"error": "Invalid JSON data"})
+                except:
+                    # Connection is closed, break the loop
+                    break
             except Exception as e:
-                await websocket.send_json({"error": f"Processing error: {str(e)}"})
+                try:
+                    await websocket.send_json({"error": f"Processing error: {str(e)}"})
+                except:
+                    # Connection is closed, break the loop
+                    print(f"WebSocket connection closed during error handling: {str(e)}")
+                    break
                 
     except WebSocketDisconnect:
+        print("WebSocket client disconnected")
+    except Exception as e:
+        print(f"WebSocket error: {str(e)}")
+    finally:
         connection_manager.disconnect(websocket)

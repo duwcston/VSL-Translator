@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Camera, Play, Square, AlertTriangle } from "lucide-react";
 import Button from "./UI/Button";
+import Card from "./UI/Card";
 import VideoStream from "./Realtime/VideoStream";
-import FrameRateControl from "./Realtime/FrameRateControl";
+// import FrameRateControl from "./Realtime/FrameRateControl";
 import PerformanceSettings from "./Realtime/PerformanceSettings";
 import ProcessedFrameDisplay from "./Realtime/ProcessedFrameDisplay";
 import DetectionResults from "./Realtime/DetectionResults";
@@ -17,10 +20,10 @@ const Realtime: React.FC<RealtimeProps> = ({ isActive = true }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [returnImage, setReturnImage] = useState(false);
-    const [frameRate, setFrameRate] = useState(10);    // Performance optimization settings
+    const [frameRate] = useState(10);
     const [skipFrames, setSkipFrames] = useState(0);
     const [resizeFactor, setResizeFactor] = useState(1.0);
-    const [inputSize, setInputSize] = useState(320);
+    const [inputSize] = useState(320);
 
     const frameInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -111,59 +114,102 @@ const Realtime: React.FC<RealtimeProps> = ({ isActive = true }) => {
             clearInterval(frameInterval.current);
             frameInterval.current = setInterval(handleCaptureFrame, 1000 / frameRate);
         }
-    }, [handleCaptureFrame, frameRate, isStreaming]);
+    }, [handleCaptureFrame, frameRate, isStreaming]); return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col gap-6"
+        >
+            {/* Error Message */}
+            <AnimatePresence>
+                {errorMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <Card variant="glass" className="border-red-200 bg-red-50/70">
+                            <div className="flex items-center space-x-3 p-4">
+                                <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                                <p className="text-red-700 font-medium">{errorMessage}</p>
+                            </div>
+                        </Card>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-    return (
-        <div className="flex flex-col gap-4 p-4">
-            {errorMessage && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    {errorMessage}
-                </div>
-            )}
+            {/* Main Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Panel - Camera and Controls */}
+                <motion.div
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-6"
+                >
+                    <Card variant="glass" className="p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <Camera className="w-5 h-5 mr-2 text-blue-600" />
+                            Camera Stream
+                        </h3>
+                        <VideoStream videoRef={videoRef} canvasRef={canvasRef} />
+                    </Card>
 
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="w-full md:w-1/2">
-                    <VideoStream videoRef={videoRef} canvasRef={canvasRef} />
+                    <Card variant="glass" className="p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Settings</h3>
+                        <div className="space-y-4">
+                            <PerformanceSettings
+                                skipFrames={skipFrames}
+                                setSkipFrames={setSkipFrames}
+                                resizeFactor={resizeFactor}
+                                setResizeFactor={setResizeFactor}
+                                returnImage={returnImage}
+                                setReturnImage={setReturnImage}
+                                isStreaming={isStreaming}
+                            />
 
-                    <div className="mt-4 flex flex-col gap-2">
-                        <FrameRateControl
-                            frameRate={frameRate}
-                            setFrameRate={setFrameRate}
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <Button
+                                    onClick={toggleStreaming}
+                                    variant={isStreaming ? "secondary" : "primary"}
+                                    icon={isStreaming ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                                    label={isStreaming ? 'Stop Detection' : 'Start Real-time Detection'}
+                                    height="12"
+                                    width="full"
+                                />
+                            </motion.div>
+                        </div>
+                    </Card>
+                </motion.div>
+
+                {/* Right Panel - Results */}
+                <motion.div
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="space-y-6"
+                >
+                    <Card variant="glass" className="p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Processed Frame</h3>
+                        <ProcessedFrameDisplay
+                            processedImage={processedImage}
                             isStreaming={isStreaming}
-                        />
-
-                        <PerformanceSettings
-                            skipFrames={skipFrames}
-                            setSkipFrames={setSkipFrames}
-                            resizeFactor={resizeFactor}
-                            setResizeFactor={setResizeFactor}
-                            inputSize={inputSize}
-                            setInputSize={setInputSize}
                             returnImage={returnImage}
-                            setReturnImage={setReturnImage}
-                            isStreaming={isStreaming}
                         />
+                    </Card>
 
-                        <Button
-                            onClick={toggleStreaming}
-                            label={isStreaming ? 'Stop Detection' : 'Start Real-time Detection'}
-                            height="auto"
-                            width="100%"
-                        />
-                    </div>
-                </div>
-
-                <div className="w-full md:w-1/2">
-                    <ProcessedFrameDisplay
-                        processedImage={processedImage}
-                        isStreaming={isStreaming}
-                        returnImage={returnImage}
-                    />
-
-                    <DetectionResults detections={detections} />
-                </div>
+                    <Card variant="glass" className="p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Detection Results</h3>
+                        <DetectionResults detections={detections} />
+                    </Card>
+                </motion.div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 

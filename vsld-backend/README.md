@@ -34,7 +34,6 @@ vsld-backend/
 ├── fonts/                     # Font files for text rendering
 │   └── arial.ttf
 ├── models/                    # YOLO model files
-│   └── 20words.pt
 ├── run.py                     # Application entry point
 └── requirements.txt           # Project dependencies
 ```

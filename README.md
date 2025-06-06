@@ -28,8 +28,6 @@ vsld-project/
 │   │   ├── services/         # Business logic services
 │   │   └── utils/            # Utility functions
 │   ├── models/               # YOLO model files
-│   │   ├── 20words.pt        # YOLO model for 20 sign words
-│   │   └── yolo11s.pt        # Smaller YOLO model variant
 │   ├── requirements.txt      # Python dependencies
 │   └── run.py                # Application entry point
 │

@@ -55,7 +55,7 @@ export const useWebcam = () => {
                 canvas.height = video.videoHeight;
 
                 // Draw the video frame to the canvas
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);                // Get the frame as a data URL
+                context.drawImage(video, 0, 0, canvas.width, canvas.height); // Get the frame as a data URL
                 return canvas.toDataURL('image/jpeg', 1.0);
             }
         }

@@ -16,7 +16,7 @@ class SignLanguageDetector:
     for real-time video analysis and streaming.
     """
     
-    def __init__(self, model_path: str, conf_threshold: float = 0.25):
+    def __init__(self, model_path: str, conf_threshold: float = CONF_THRESHOLD):
         """
         Initialize the Sign Language Detector
         
@@ -251,7 +251,6 @@ class SignLanguageDetector:
             
             frame_number += 1
             
-            # Stop if we've reached the maximum number of frames
             if frame_number >= max_frames:
                 break
         

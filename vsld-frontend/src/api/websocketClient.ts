@@ -1,3 +1,5 @@
+import { API_DETECTIONS_URL } from "./constants";
+
 // WebSocket client for real-time detection
 type WebSocketCallback = (data: unknown) => void;
 type WebSocketErrorCallback = (error: unknown) => void;
@@ -7,7 +9,7 @@ class WebSocketClient {
     private socket: WebSocket | null = null;
     private isConnected: boolean = false;
     // private wsApi: string = 'ws://localhost:8000/ws/detect';
-    private wsApi: string = `${url}/v1/detections/stream`;
+    private wsApi: string = `${url}/${API_DETECTIONS_URL}/stream`;
     private onMessageCallback: WebSocketCallback | null = null;
     private onErrorCallback: WebSocketErrorCallback | null = null;
     private reconnectAttempts: number = 0;
