@@ -25,7 +25,7 @@ vsld-project/
 │   ├── app/                  # Main application package
 │   │   ├── api/              # API endpoints and routes
 │   │   ├── core/             # Core configuration
-│   │   ├── services/         # Business logic services
+│   │   ├── services/         # Logic services
 │   │   └── utils/            # Utility functions
 │   ├── models/               # YOLO model files
 │   ├── requirements.txt      # Python dependencies
@@ -35,7 +35,8 @@ vsld-project/
     ├── src/                  # Source code
     │   ├── api/              # API client services
     │   ├── components/       # React components
-    │   ├── layout/           # Page layout components
+    |   ├── hooks/            # Custom hooks
+    │   ├── pages/            # Pages
     │   └── types/            # TypeScript type definitions
     ├── public/               # Static assets
     └── package.json          # NPM dependencies
@@ -107,10 +108,10 @@ The frontend will be available at `http://localhost:5173`.
 - WebSockets - Real-time communication
 
 ### Frontend
-- React 19 - UI library
+- React 19
 - TypeScript
 - Vite - Build tool and development server
-- Tailwind CSS - Utility-first CSS framework
+- Tailwind CSS - CSS framework
 
 ## Application Workflow
 
@@ -132,4 +133,4 @@ MIT License
 
 ## Acknowledgements
 
-This project was developed as part of a thesis at IU University, focusing on assistive technology for the hearing impaired through computer vision and deep learning techniques.
+This project was developed as part of my thesis at International University, VNU-HCM, Vietnam focusing on assistive technology for the hearing impaired through computer vision and deep learning techniques.
