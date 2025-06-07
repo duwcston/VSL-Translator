@@ -62,17 +62,14 @@ def process_video_frame_by_frame(video_path: Path) -> Tuple[List[Dict], float]:
         if not ret:
             break
             
-        # Get timestamp in seconds
         timestamp = frame_number / fps
         
-        # Use the optimized detector
         detections, _ = detector.detect_from_image(
             frame, 
-            input_size=640,  # Higher input size for better quality on video processing
+            input_size=640,
             augment=False
         )
         
-        # Add the processed frame to our results
         frame_result = {
             "frame_number": frame_number,
             "timestamp": timestamp,

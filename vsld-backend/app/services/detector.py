@@ -33,6 +33,12 @@ class SignLanguageDetector:
         # Move model to device and optimize
         if self.device == 'cuda':
             self.model.to(self.device).half()  # Use half precision for better performance
+            # Warm up the model with a dummy input
+            dummy_input = torch.zeros(1, 3, 640, 640).to(self.device).half()
+            self.model(dummy_input)
+        
+        # Set model to eval mode for inference
+        self.model.eval()
             
     def load_model(self, model_path: str) -> YOLO:
         """

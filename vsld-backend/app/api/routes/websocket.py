@@ -49,10 +49,10 @@ async def handle_websocket_detection(websocket: WebSocket):
     detector = get_detector()
     
     # Default settings
-    frame_count = 0
-    skip_frames = 0
-    resize_factor = 1.0
-    input_size = 320
+    FRAME_COUNT = 0
+    SKIP_FRAMES = 0
+    RESIZE_FACTOR = 1.0
+    INPUT_SIZE = 320
     
     try:
         while True:
@@ -66,15 +66,13 @@ async def handle_websocket_detection(websocket: WebSocket):
                     continue
                 
                 if "skip_frames" in data_json:
-                    skip_frames = int(data_json["skip_frames"])
+                    SKIP_FRAMES = int(data_json["skip_frames"])
                 if "resize_factor" in data_json:
-                    resize_factor = float(data_json["resize_factor"])
-                if "input_size" in data_json:
-                    input_size = int(data_json["input_size"])
+                    RESIZE_FACTOR = float(data_json["resize_factor"])
                 
                 # Frame skipping logic
-                frame_count += 1
-                if skip_frames > 0 and frame_count % (skip_frames + 1) != 0:
+                FRAME_COUNT += 1
+                if SKIP_FRAMES > 0 and FRAME_COUNT % (SKIP_FRAMES + 1) != 0:
                     await websocket.send_json({
                         "timestamp": data_json.get("timestamp", None),
                         "detections": [],
@@ -91,19 +89,19 @@ async def handle_websocket_detection(websocket: WebSocket):
                     await websocket.send_json({"error": "Invalid image data"})
                     continue
                 
-                # Resize image if resize_factor is not 1.0
-                if resize_factor != 1.0:
+                # Resize image if RESIZE_FACTOR is not 1.0
+                if RESIZE_FACTOR != 1.0:
                     h, w = frame.shape[:2]
-                    new_h, new_w = int(h * resize_factor), int(w * resize_factor)
+                    new_h, new_w = int(h * RESIZE_FACTOR), int(w * RESIZE_FACTOR)
                     frame = cv2.resize(frame, (new_w, new_h))
 
                 results = detector.model.predict(
                     source=frame, 
                     conf=WEBSOCKET_CONF_THRESHOLD, 
                     verbose=False,
-                    imgsz=input_size,
-                    augment=False,
-                    retina_masks=False,
+                    imgsz=INPUT_SIZE,
+                    # augment=False,
+                    # retina_masks=False,
                     max_det=1
                 )
 
@@ -118,8 +116,8 @@ async def handle_websocket_detection(websocket: WebSocket):
                             coords = box.xyxy[0].tolist()  # x1, y1, x2, y2
                             
                             # Scale bbox coordinates if image was resized
-                            if resize_factor != 1.0:
-                                coords = [c / resize_factor for c in coords]
+                            if RESIZE_FACTOR != 1.0:
+                                coords = [c / RESIZE_FACTOR for c in coords]
                                 
                             detections.append({
                                 "class_name": class_name,
@@ -133,13 +131,11 @@ async def handle_websocket_detection(websocket: WebSocket):
                     "detections": detections
                 }
                 
-                # Optionally return the annotated image
                 if data_json.get("return_image", False):
                     # If image was resized, we need to use original size for visualization
-                    if resize_factor != 1.0:
+                    if RESIZE_FACTOR != 1.0:
                         h, w = frame.shape[:2]
-                        frame = cv2.resize(frame, (int(w / resize_factor), int(h / resize_factor)))
-                      # Draw predictions on the frame
+                        frame = cv2.resize(frame, (int(w / RESIZE_FACTOR), int(h / RESIZE_FACTOR)))
                     for det in detections:
                         x1, y1, x2, y2 = map(int, det["bbox"])
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -147,11 +143,9 @@ async def handle_websocket_detection(websocket: WebSocket):
                         
                         # Use PIL for better Vietnamese text rendering with Arial font
                         if FONT_PATH.exists():
-                            # Convert OpenCV image to PIL format
                             pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
                             draw = ImageDraw.Draw(pil_img)
                             
-                            # Load Arial font
                             try:
                                 font_size = 16
                                 font = ImageFont.truetype(str(FONT_PATH), font_size)
@@ -161,10 +155,8 @@ async def handle_websocket_detection(websocket: WebSocket):
                                     fill=(0, 255, 0)
                                 )
                                 
-                                # Draw text with proper Vietnamese support
                                 draw.text((x1, y1 - text_height - 2), label, font=font, fill=(0, 0, 0))
                                 
-                                # Convert back to OpenCV format
                                 frame = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
                             except Exception as e:
                                 print(f"Error using PIL for text: {e}")
@@ -176,7 +168,6 @@ async def handle_websocket_detection(websocket: WebSocket):
                     img_str = base64.b64encode(buffer).decode('utf-8')
                     response["image"] = f"data:image/jpeg;base64,{img_str}"
                 
-                # Send response back to client
                 await websocket.send_json(response)
                 
             except json.JSONDecodeError:

@@ -1,5 +1,10 @@
 from pathlib import Path
 from typing import List, Set
+import os
+
+# Environment-based configuration
+ENV = os.getenv("ENV", "development")
+DEBUG = ENV == "development"
 
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -15,7 +20,7 @@ ALLOWED_VIDEO_EXTENSIONS: Set[str] = {".mp4", ".mov"}
 ALLOWED_EXTENSIONS: Set[str] = ALLOWED_IMAGE_EXTENSIONS.union(ALLOWED_VIDEO_EXTENSIONS)
 
 # Detection settings
-CONF_THRESHOLD: float = 0.7
+CONF_THRESHOLD: float = 0.75
 WEBSOCKET_CONF_THRESHOLD: float = 0.5
 
 # Streaming settings
@@ -32,7 +37,7 @@ APP_DESCRIPTION: str = "API for visual sign language detection using YOLO models
 APP_VERSION: str = "1.0.0"
 
 # Models
-DEFAULT_MODEL_PATH: str = str(MODELS_DIR / "final_best.pt")
+DEFAULT_MODEL_PATH: str = str(MODELS_DIR / "best.pt")
 
 # Create necessary directories
 TEMP_DIR.mkdir(exist_ok=True)
