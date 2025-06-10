@@ -126,7 +126,7 @@ const DetectionDisplay: React.FC<DetectionDisplayProps> = ({
                                             key="no-detections"
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
-                                            className="text-center py-8"
+                                            className="text-center"
                                         >
                                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                                 <Eye className="w-8 h-8 text-gray-400" />
@@ -210,12 +210,12 @@ const DetectionDisplay: React.FC<DetectionDisplayProps> = ({
                         animate={{ opacity: 1 }}
                         className="text-center"
                     >
-                        <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        {/* <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Eye className="w-10 h-10 text-blue-600" />
-                        </div>
+                        </div> */}
                         {/* <h4 className="text-lg font-semibold text-gray-700 mb-2">Ready to Analyze</h4> */}
                         <p className="text-gray-500">
-                            Upload a file to see AI detection results
+                            Upload a file to see detection results
                         </p>
                     </motion.div>
                 )}

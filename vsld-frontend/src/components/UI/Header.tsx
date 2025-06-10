@@ -27,7 +27,7 @@ export const Header = () => {
                         VSL Translator
                     </motion.h1>
                     <p className="text-gray-600 text-sm font-medium">
-                        Vietnamese Sign Language detection & translation
+                        Vietnamese Sign Language Detection
                     </p>
                 </div>
             </div>

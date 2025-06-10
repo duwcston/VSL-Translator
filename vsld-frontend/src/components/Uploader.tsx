@@ -141,10 +141,10 @@ export default function Uploader() {
                                     : 'Running AI sign language detection on your file...'}
                             </p>
                         </div>
-                    </div>                    <ProgressBar
+                    </div>                    
+                    <ProgressBar
                         progress={currentStage === 'upload' ? uploadProgress : processingProgress}
                         variant="gradient"
-                        className="mt-2"
                         label=""
                         subLabel=""
                     />
@@ -157,7 +157,7 @@ export default function Uploader() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="space-y-6"
+                    className="space-y-3"
                 >
                     <UploadSection
                         file={file}

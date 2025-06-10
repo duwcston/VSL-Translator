@@ -36,9 +36,9 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({
                         <PlayCircle className="w-10 h-10 text-blue-600" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-700">Ready for Analysis</h3>
+                        <h3 className="text-lg font-semibold text-gray-700">Ready for Detection</h3>
                         <p className="text-gray-500 text-sm mt-2">
-                            Upload a file to see detection results and analysis
+                            Upload a file to see detection results
                         </p>
                     </div>
                 </motion.div>

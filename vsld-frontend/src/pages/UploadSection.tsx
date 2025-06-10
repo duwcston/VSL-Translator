@@ -14,7 +14,7 @@ export default function UploadSection() {
                     Upload Your File
                 </h2>
                 <p className="text-gray-600">
-                    Upload a file containing sign language and let our AI analyze and translate it for you
+                    Upload a file containing sign language and let our model translate it for you
                 </p>
             </div>
             <Uploader />
