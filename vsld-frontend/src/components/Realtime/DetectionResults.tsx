@@ -8,7 +8,7 @@ interface DetectionResultsProps {
 const DetectionResults: React.FC<DetectionResultsProps> = ({ detections }) => {
     return (
         <div className="mt-4">
-            <h3 className="font-bold text-lg">Detections</h3>
+            {/* <h3 className="font-bold text-lg">Detections</h3> */}
             <div className="mt-2 max-h-[200px] overflow-y-auto bg-gray-50 rounded p-2">
                 {detections.length > 0 ? (
                     <ul className="divide-y divide-gray-200">

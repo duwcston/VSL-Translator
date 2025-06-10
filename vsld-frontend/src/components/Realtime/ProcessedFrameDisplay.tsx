@@ -25,7 +25,7 @@ const ProcessedFrameDisplay: React.FC<ProcessedFrameDisplayProps> = ({
                         ? (returnImage
                             ? "Waiting for processed frames..."
                             : "Streaming without visual feedback")
-                        : "Start detection to see results"}
+                        : "Start to see the results"}
                 </div>
             )}
         </div>

@@ -19,7 +19,7 @@ export default function ProgressBar({
     label = 'Progress',
     subLabel
 }: ProgressBarProps) {
-    const normalizedProgress = Math.max(0, Math.min(100, progress));
+    const normalizedProgress = Math.max(0, Math.min(90, progress));
 
     const sizeClasses = {
         sm: 'h-2',
@@ -41,14 +41,14 @@ export default function ProgressBar({
                     <div className="flex flex-col">
                         <span className="text-sm font-medium text-gray-700">{label}</span>
                         {subLabel && (
-                            <span className="text-xs text-gray-500 mt-1">{subLabel}</span>
+                            <span className="text-xs text-gray-500">{subLabel}</span>
                         )}
                     </div>
                     <motion.span
                         key={normalizedProgress}
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="text-sm font-semibold text-gray-800 bg-gray-100 px-2 py-1 rounded-full"
+                        className="text-sm font-semibold text-gray-800 bg-gray-100 px-2 rounded-full"
                     >
                         {normalizedProgress.toFixed(0)}%
                     </motion.span>

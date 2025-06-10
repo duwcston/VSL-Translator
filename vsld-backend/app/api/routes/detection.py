@@ -44,9 +44,7 @@ def generate_sentence_from_detections(detections):
     
     # Handle both single frame detections and multi-frame detections (for videos)
     if isinstance(detections, list) and detections and isinstance(detections[0], dict):
-        # If this is a list of frame detections (for videos)
         if "frame_number" in detections[0]:
-            # Collect all unique words across all frames, preserving order of first appearance
             all_words = []
             seen_words = set()
             
@@ -58,7 +56,6 @@ def generate_sentence_from_detections(detections):
                         all_words.append(class_name)
                         seen_words.add(class_name)
         else:
-            # Regular list of detections for a single image
             all_words = []
             seen_words = set()
             
@@ -68,7 +65,6 @@ def generate_sentence_from_detections(detections):
                     all_words.append(class_name)
                     seen_words.add(class_name)
     else:
-        # In case it's a single detection object
         return ""
     
     # Join the words into a space-separated string

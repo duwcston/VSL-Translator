@@ -19,7 +19,7 @@ const RealtimeSection: React.FC<RealtimeSectionProps> = ({ isActive = true }) =>
                     Real-time Detection
                 </h2>
                 <p className="text-gray-600">
-                    Use your camera for live sign language detection and real-time translation
+                    Use your camera for live sign language detection
                 </p>
             </div>
             <Realtime isActive={isActive} />
