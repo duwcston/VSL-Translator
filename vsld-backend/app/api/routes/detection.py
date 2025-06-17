@@ -53,7 +53,7 @@ def generate_sentence_from_detections(detections):
                 for detection in frame_detections:
                     class_name = detection.get("class_name")
                     if class_name and class_name not in seen_words:
-                        all_words.append(class_name)
+                        all_words.append(class_name.strip().lower())
                         seen_words.add(class_name)
         else:
             all_words = []
@@ -62,7 +62,7 @@ def generate_sentence_from_detections(detections):
             for detection in detections:
                 class_name = detection.get("class_name")
                 if class_name and class_name not in seen_words:
-                    all_words.append(class_name)
+                    all_words.append(class_name.strip().lower())
                     seen_words.add(class_name)
     else:
         return ""

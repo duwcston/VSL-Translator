@@ -10,6 +10,7 @@ from app.core.config import (
 )
 from app.api.routes import api_router
 from app.api.routes.websocket import handle_websocket_detection
+from app.services.detector import get_detector
 
 
 def create_application() -> FastAPI:
@@ -45,6 +46,14 @@ def create_application() -> FastAPI:
 
 
 app = create_application()
+
+
+# Initialize model on startup
+@app.on_event("startup")
+async def startup_db_client():
+    print("Initializing sign language detection model...")
+    _ = get_detector()
+    print("Model initialization complete!")
 
 
 if __name__ == "__main__":

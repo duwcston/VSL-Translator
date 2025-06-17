@@ -109,7 +109,6 @@ class SignLanguageDetector:
                         "bbox": coords
                     })
         
-        # Calculate FPS for monitoring
         end_time = time()
         fps = 1 / (end_time - start_time) if (end_time - start_time) > 0 else 0
         

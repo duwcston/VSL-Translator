@@ -75,7 +75,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
                 </motion.div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-row gap-3 ">
                 <motion.div
                     className="flex-1"
                     whileHover={{ scale: 1.02 }}
@@ -87,7 +87,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
                         label={
                             status === EUploadStatus.Uploading ? "Uploading..." :
                                 status === EUploadStatus.Processing ? "Processing..." :
-                                    "Upload & Analyze"
+                                    "Upload"
                         }
                         onClick={onUpload}
                         disabled={status === EUploadStatus.Uploading || status === EUploadStatus.Processing || !file}

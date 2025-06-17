@@ -19,7 +19,7 @@ export default function ProgressBar({
     label = 'Progress',
     subLabel
 }: ProgressBarProps) {
-    const normalizedProgress = Math.max(0, Math.min(90, progress));
+    const normalizedProgress = Math.max(0, Math.min(100, progress));
 
     const sizeClasses = {
         sm: 'h-2',
@@ -66,6 +66,7 @@ export default function ProgressBar({
                     aria-valuemin={0}
                     aria-valuemax={100}
                 />
-            </div>        </div>
+            </div>
+        </div>
     );
 }
