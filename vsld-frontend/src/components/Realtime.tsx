@@ -194,7 +194,7 @@ const Realtime: React.FC<RealtimeProps> = ({ isActive = true }) => {
                     transition={{ delay: 0.3 }}
                     className="space-y-6"
                 >
-                    <Card variant="glass" className="p-6">
+                    <Card variant="glass" className="p-8">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4">Processed Frame</h3>
                         <ProcessedFrameDisplay
                             processedImage={processedImage}

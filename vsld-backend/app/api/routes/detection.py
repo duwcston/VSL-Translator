@@ -42,7 +42,6 @@ def generate_sentence_from_detections(detections):
     if not detections:
         return ""
     
-    # Handle both single frame detections and multi-frame detections (for videos)
     if isinstance(detections, list) and detections and isinstance(detections[0], dict):
         if "frame_number" in detections[0]:
             all_words = []
@@ -53,7 +52,7 @@ def generate_sentence_from_detections(detections):
                 for detection in frame_detections:
                     class_name = detection.get("class_name")
                     if class_name and class_name not in seen_words:
-                        all_words.append(class_name)
+                        all_words.append(class_name.strip().lower())
                         seen_words.add(class_name)
         else:
             all_words = []
@@ -62,15 +61,13 @@ def generate_sentence_from_detections(detections):
             for detection in detections:
                 class_name = detection.get("class_name")
                 if class_name and class_name not in seen_words:
-                    all_words.append(class_name)
+                    all_words.append(class_name.strip().lower())
                     seen_words.add(class_name)
     else:
         return ""
     
-    # Join the words into a space-separated string
     detected_text = " ".join(all_words)
     
-    # If we have no words, return empty string
     if not detected_text:
         return ""
         
@@ -105,14 +102,12 @@ async def predict_objects(file: UploadFile = File(...)):
     
     cleanup_runs_directory()
     
-    # Save uploaded file temporarily
     temp_path = await save_upload_file(file)
 
     try:
         detector = get_detector()
         
         if is_video_file(file.filename, ALLOWED_VIDEO_EXTENSIONS):
-            # Check if video is valid
             cap = cv2.VideoCapture(str(temp_path))
             if not cap.isOpened():
                 raise HTTPException(
@@ -120,7 +115,6 @@ async def predict_objects(file: UploadFile = File(...)):
                     detail="Failed to open video file, it may be corrupted"
                 )
             
-            # Check if video has frames
             ret, _ = cap.read()
             cap.release()
             
@@ -130,13 +124,10 @@ async def predict_objects(file: UploadFile = File(...)):
                     detail="Failed to read video frames"
                 )
             
-            # Process video frame by frame
             frame_detections, fps = process_video_frame_by_frame(temp_path)
             
-            # Run YOLO prediction to get processed video file
             results = detector.model.predict(source=temp_path, save=True, conf=CONF_THRESHOLD, verbose=False, max_det=1)
             
-            # Check for AVI files that need to be converted to MP4
             avi_files = list(PREDICTION_DIR.glob("*.avi"))
             if avi_files:
                 avi_path = avi_files[0]

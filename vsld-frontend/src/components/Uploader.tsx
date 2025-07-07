@@ -19,7 +19,7 @@ export default function Uploader() {
         currentTime,
         currentFrameDetections,
         uploadProgress,
-        processingProgress,
+        // processingProgress,
         currentStage,
         inputRef,
         setStatus,
@@ -65,28 +65,10 @@ export default function Uploader() {
             setCurrentStage('processing');
             setUploadProgress(100);
 
-            // Simulate processing progress for user feedback
-            const simulateProcessingProgress = () => {
-                let progress = 0;
-                const interval = setInterval(() => {
-                    progress += Math.random() * 15; // Random increment
-                    if (progress >= 90) {
-                        progress = 90; // Cap at 90% until actual completion
-                        clearInterval(interval);
-                    }
-                    setProcessingProgress(progress);
-                }, 200);
-                return interval;
-            };
-
-            const progressInterval = simulateProcessingProgress();
-
             const key = file.name;
             setResults((prev) => ({ ...prev, [key]: response }));
 
-            // Wait a bit to let the server process the video, then complete processing
             setTimeout(() => {
-                clearInterval(progressInterval);
                 setProcessingProgress(100);
                 setResultURL(resultApi.getResult());
                 setStatus(EUploadStatus.Success);
@@ -115,7 +97,6 @@ export default function Uploader() {
                     </div>
                 </motion.div>
             )}
-
             {/* Processing State */}
             {(status === EUploadStatus.Uploading || status === EUploadStatus.Processing) && (
                 <motion.div
@@ -123,7 +104,7 @@ export default function Uploader() {
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6 shadow-lg"
                 >
-                    <div className="flex items-center mb-4">
+                    <div className="flex items-center">
                         <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -138,16 +119,18 @@ export default function Uploader() {
                             <p className="text-gray-600 text-sm">
                                 {currentStage === 'upload'
                                     ? 'Uploading file to server...'
-                                    : 'Running AI sign language detection on your file...'}
+                                    : 'Running VSL detection on your file...'}
                             </p>
                         </div>
-                    </div>                    
-                    <ProgressBar
-                        progress={currentStage === 'upload' ? uploadProgress : processingProgress}
-                        variant="gradient"
-                        label=""
-                        subLabel=""
-                    />
+                    </div>
+                    {currentStage === 'upload' && (
+                        <ProgressBar
+                            progress={uploadProgress}
+                            variant="gradient"
+                            label=""
+                            subLabel=""
+                        />
+                    )}
                 </motion.div>
             )}
 

@@ -14,7 +14,7 @@ function App() {
       <div className="relative z-10">
         <div className="container mx-auto px-6 py-8">
           <Header />
-          <div className="my-8">
+          <div className="my-6">
             <Tabs />
           </div>
         </div>
