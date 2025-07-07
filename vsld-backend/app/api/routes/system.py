@@ -2,7 +2,6 @@ from fastapi import APIRouter
 
 router = APIRouter(tags=["System"])
 
-
 @router.get("/status")
 def get_system_status():
     """

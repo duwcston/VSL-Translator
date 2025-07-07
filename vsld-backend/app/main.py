@@ -27,7 +27,6 @@ def create_application() -> FastAPI:
         version=APP_VERSION,
     )
     
-    # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,
@@ -36,7 +35,6 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
     
-    # Include API routes
     app.include_router(api_router)
     
     # Add WebSocket endpoint
@@ -44,9 +42,7 @@ def create_application() -> FastAPI:
     
     return app
 
-
 app = create_application()
-
 
 # Initialize model on startup
 @app.on_event("startup")
@@ -57,5 +53,4 @@ async def startup_db_client():
 
 
 if __name__ == "__main__":
-    # Run the application with uvicorn when script is executed directly
     uvicorn.run("app.main:app", host="localhost", port=8000, reload=True)

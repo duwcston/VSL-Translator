@@ -12,7 +12,7 @@ class Paraphraser:
     
     def __init__(self):
         """Initialize the paraphraser with MT5 model and context tracking"""
-        self.tokenizer = MT5Tokenizer.from_pretrained(CKPT)
+        self.tokenizer = MT5Tokenizer.from_pretrained(CKPT, legacy=True)
         self.model = MT5ForConditionalGeneration.from_pretrained(CKPT)
         print("[Paraphraser] Vietnamese MT5 paraphrase model loaded successfully")
        

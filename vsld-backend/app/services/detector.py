@@ -32,8 +32,7 @@ class SignLanguageDetector:
         
         # Move model to device and optimize
         if self.device == 'cuda':
-            self.model.to(self.device).half()  # Use half precision for better performance
-            # Warm up the model with a dummy input
+            self.model.to(self.device).half()
             dummy_input = torch.zeros(1, 3, 640, 640).to(self.device).half()
             self.model(dummy_input)
         
@@ -78,10 +77,8 @@ class SignLanguageDetector:
         # Make sure the frame is correctly sized for performance
         image_resized = self.ensure_frame_size(image, input_size)
         
-        # Start timing for performance metrics
         start_time = time()
         
-        # Run inference
         results = self.model.predict(
             source=image_resized,
             conf=self.conf_threshold,
@@ -91,7 +88,6 @@ class SignLanguageDetector:
             retina_masks=False
         )
         
-        # Process results into standardized format
         detections = []
         if results and results[0].boxes:
             for box in results[0].boxes:
@@ -164,29 +160,22 @@ class SignLanguageDetector:
                 
             x1, y1, x2, y2 = map(int, det["bbox"])
             
-            # Draw rectangle
+            # Draw bounding box
             cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            
-            # Create label text
             label = f"{det['class_name']}: {det['confidence']:.2f}"
-            
-            # Calculate text size and position
             text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_DUPLEX, 0.6, 1)[0]
             
-            # Draw label background
             cv2.rectangle(annotated_image, 
                          (x1, y1 - 20), 
                          (x1 + text_size[0], y1), 
                          (0, 255, 0), -1)
             
-            # Draw label text
             cv2.putText(annotated_image, 
                        label, 
                        (x1, y1 - 5), 
                        cv2.FONT_HERSHEY_DUPLEX, 
                        0.6, (0, 0, 0), 1)
         
-        # Add FPS if provided
         if fps is not None:
             cv2.putText(annotated_image, 
                       f'FPS: {int(fps)}', 
@@ -216,12 +205,10 @@ class SignLanguageDetector:
         if not cap.isOpened():
             raise ValueError(f"Failed to open video file: {video_path}")
         
-        # Get video properties
         fps = cap.get(cv2.CAP_PROP_FPS)
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
-        # Initialize video writer if output path is provided
         out = None
         if output_path:
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -236,13 +223,10 @@ class SignLanguageDetector:
             if not ret:
                 break
                 
-            # Get timestamp in seconds
             timestamp = frame_number / fps
             
-            # Perform detection
             detections, annotated_frame = self.detect_from_image(frame)
             
-            # Write to output video if specified
             if out and annotated_frame is not None:
                 out.write(annotated_frame)
             
@@ -259,7 +243,6 @@ class SignLanguageDetector:
             if frame_number >= max_frames:
                 break
         
-        # Clean up
         cap.release()
         if out:
             out.release()
@@ -286,12 +269,10 @@ class SignLanguageDetector:
             frame, input_size=input_size
         )
         
-        # Prepare response
         response = {
             "detections": detections
         }
         
-        # Add annotated image if requested
         if return_image:
             _, buffer = cv2.imencode('.jpg', annotated_image, [cv2.IMWRITE_JPEG_QUALITY, 80])
             img_str = base64.b64encode(buffer).decode('utf-8')

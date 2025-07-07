@@ -21,7 +21,7 @@ ALLOWED_EXTENSIONS: Set[str] = ALLOWED_IMAGE_EXTENSIONS.union(ALLOWED_VIDEO_EXTE
 
 # Detection settings
 CONF_THRESHOLD: float = 0.75
-WEBSOCKET_CONF_THRESHOLD: float = 0.5
+WEBSOCKET_CONF_THRESHOLD: float = 0.7
 
 # Streaming settings
 CHUNK_SIZE: int = 1024 * 1024  # 1MB chunks for streaming

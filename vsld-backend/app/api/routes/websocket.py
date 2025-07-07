@@ -56,7 +56,6 @@ async def handle_websocket_detection(websocket: WebSocket):
     
     try:
         while True:
-            # Wait for data from client
             data = await websocket.receive_text()
             
             try:
@@ -70,7 +69,6 @@ async def handle_websocket_detection(websocket: WebSocket):
                 if "resize_factor" in data_json:
                     RESIZE_FACTOR = float(data_json["resize_factor"])
                 
-                # Frame skipping logic
                 FRAME_COUNT += 1
                 if SKIP_FRAMES > 0 and FRAME_COUNT % (SKIP_FRAMES + 1) != 0:
                     await websocket.send_json({
@@ -89,7 +87,6 @@ async def handle_websocket_detection(websocket: WebSocket):
                     await websocket.send_json({"error": "Invalid image data"})
                     continue
                 
-                # Resize image if RESIZE_FACTOR is not 1.0
                 if RESIZE_FACTOR != 1.0:
                     h, w = frame.shape[:2]
                     new_h, new_w = int(h * RESIZE_FACTOR), int(w * RESIZE_FACTOR)
@@ -100,8 +97,6 @@ async def handle_websocket_detection(websocket: WebSocket):
                     conf=WEBSOCKET_CONF_THRESHOLD, 
                     verbose=False,
                     imgsz=INPUT_SIZE,
-                    # augment=False,
-                    # retina_masks=False,
                     max_det=1
                 )
 
@@ -111,11 +106,9 @@ async def handle_websocket_detection(websocket: WebSocket):
                         class_id = int(box.cls[0])
                         class_name = detector.model.names[class_id]
                         confidence = float(box.conf[0])
-                          # Only include detections above threshold
                         if confidence >= WEBSOCKET_CONF_THRESHOLD:
                             coords = box.xyxy[0].tolist()  # x1, y1, x2, y2
                             
-                            # Scale bbox coordinates if image was resized
                             if RESIZE_FACTOR != 1.0:
                                 coords = [c / RESIZE_FACTOR for c in coords]
                                 
@@ -132,7 +125,6 @@ async def handle_websocket_detection(websocket: WebSocket):
                 }
                 
                 if data_json.get("return_image", False):
-                    # If image was resized, we need to use original size for visualization
                     if RESIZE_FACTOR != 1.0:
                         h, w = frame.shape[:2]
                         frame = cv2.resize(frame, (int(w / RESIZE_FACTOR), int(h / RESIZE_FACTOR)))
@@ -174,13 +166,11 @@ async def handle_websocket_detection(websocket: WebSocket):
                 try:
                     await websocket.send_json({"error": "Invalid JSON data"})
                 except:
-                    # Connection is closed, break the loop
                     break
             except Exception as e:
                 try:
                     await websocket.send_json({"error": f"Processing error: {str(e)}"})
                 except:
-                    # Connection is closed, break the loop
                     print(f"WebSocket connection closed during error handling: {str(e)}")
                     break
                 
