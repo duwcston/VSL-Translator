@@ -70,7 +70,7 @@ vsld-project/
 
 The backend will start at `http://localhost:8000` by default.
 
-The API Document create by [SwaggerUI](https://swagger.io/tools/swagger-ui/) can be access at `http://localhost:8000/docs`.
+The API Document created by [SwaggerUI](https://swagger.io/tools/swagger-ui/) can be access at `http://localhost:8000/docs`.
 ![API Document](frontend/public/API.jpg)
 
 ### Frontend Setup
