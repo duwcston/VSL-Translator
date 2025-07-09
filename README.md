@@ -139,4 +139,4 @@ MIT License
 
 ## Acknowledgements
 
-This project was developed as part of my thesis at International University, VNU-HCM, Vietnam focusing on assistive technology for the hearing impaired through computer vision and deep learning techniques. Give this repo a star if this is useful for you!
+This project was developed as part of my thesis at International University, VNU-HCM, Vietnam focusing on assistive technology for the hearing impaired through computer vision and deep learning techniques. If this repo is useful for you, give it a star!
