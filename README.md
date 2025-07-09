@@ -27,6 +27,7 @@ vsld-project/
 │   │   ├── core/             # Core configuration
 │   │   ├── services/         # Logic services
 │   │   └── utils/            # Utility functions
+│   ├── fonts/                # Text fonts
 │   ├── models/               # YOLO model files
 │   ├── requirements.txt      # Python dependencies
 │   └── run.py                # Application entry point
