@@ -1,12 +1,7 @@
-import React from "react";
 import { motion } from "framer-motion";
-import Realtime from "../components/Realtime";
+import Uploader from "./Uploader";
 
-interface RealtimeSectionProps {
-    isActive?: boolean;
-}
-
-const RealtimeSection: React.FC<RealtimeSectionProps> = ({ isActive = true }) => {
+export default function UploadSection() {
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -16,15 +11,13 @@ const RealtimeSection: React.FC<RealtimeSectionProps> = ({ isActive = true }) =>
         >
             <div className="mb-6 text-center">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                    Real-time Detection
+                    Upload Your File
                 </h2>
                 <p className="text-gray-600">
-                    Use your camera for live sign language detection
+                    Upload a file containing sign language and let our model translate it for you
                 </p>
             </div>
-            <Realtime isActive={isActive} />
+            <Uploader />
         </motion.div>
-    );
-};
-
-export default RealtimeSection;
+    )
+}

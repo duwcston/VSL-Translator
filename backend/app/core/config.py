@@ -33,7 +33,7 @@ CORS_ORIGINS: List[str] = [
 
 # App settings
 APP_TITLE: str = "VSL Detection Backend"
-APP_DESCRIPTION: str = "API for visual sign language detection using YOLO models"
+APP_DESCRIPTION: str = "API for VSL Recognition System"
 APP_VERSION: str = "1.0.0"
 
 # Models
@@ -48,10 +48,8 @@ def setup_fonts() -> None:
     """Set up fonts for text rendering"""
     if not FONT_PATH.exists():
         try:
-            # Check if font exists in system fonts (Windows path)
             windows_font = Path("C:/Windows/Fonts/arial.ttf")
             if windows_font.exists():
-                # Copy from system fonts
                 import shutil
                 shutil.copy(windows_font, FONT_PATH)
                 print(f"Copied Arial font from system fonts to {FONT_PATH}")
