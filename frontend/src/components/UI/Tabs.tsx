@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Upload, Video } from "lucide-react";
-import UploadSection from "../../pages/Upload/UploadSection";
-import RealtimeSection from "../../pages/Realtime/RealtimeSection";
+import UploadSection from "../../pages/UploadSection";
+import RealtimeSection from "../../pages/RealtimeSection";
 
 export default function Tabs() {
   const [activeTab, setActiveTab] = useState(() => {
