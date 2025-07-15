@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import Realtime from "./Realtime";
+import Realtime from "../components/Realtime/Realtime";
 
 interface RealtimeSectionProps {
   isActive?: boolean;
