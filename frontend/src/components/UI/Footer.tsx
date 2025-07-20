@@ -50,7 +50,7 @@ const Footer = () => {
           >
             <motion.a
               {...hoverEffect}
-              href="https://github.com/duwcston/VSL-Detection"
+              href="https://github.com/duwcston/VSL-Translator"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-blue-50"

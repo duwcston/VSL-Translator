@@ -1,12 +1,9 @@
 from pathlib import Path
-from typing import List, Set
 import os
 
-# Environment-based configuration
 ENV = os.getenv("ENV", "development")
 DEBUG = ENV == "development"
 
-# Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 TEMP_DIR = BASE_DIR / "temp_files"
 FONT_DIR = BASE_DIR / "fonts"
@@ -14,38 +11,26 @@ FONT_PATH = FONT_DIR / "arial.ttf"
 PREDICTION_DIR = Path("runs/detect/predict") or Path("runs/detect/predict2")
 MODELS_DIR = BASE_DIR / "models"
 
-# File extensions
-ALLOWED_IMAGE_EXTENSIONS: Set[str] = {".jpg", ".jpeg", ".png"}
-ALLOWED_VIDEO_EXTENSIONS: Set[str] = {".mp4", ".mov"}
-ALLOWED_EXTENSIONS: Set[str] = ALLOWED_IMAGE_EXTENSIONS.union(ALLOWED_VIDEO_EXTENSIONS)
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov"}
+ALLOWED_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS.union(ALLOWED_VIDEO_EXTENSIONS)
 
-# Detection settings
-CONF_THRESHOLD: float = 0.75
-WEBSOCKET_CONF_THRESHOLD: float = 0.7
+CONF_THRESHOLD = 0.75
+WEBSOCKET_CONF_THRESHOLD = 0.7
+CHUNK_SIZE = 1024 * 1024
 
-# Streaming settings
-CHUNK_SIZE: int = 1024 * 1024  # 1MB chunks for streaming
+CORS_ORIGINS = ["http://localhost:5173"]
 
-# CORS settings
-CORS_ORIGINS: List[str] = [
-    "http://localhost:5173",
-]
+APP_TITLE = "VSL Detection Backend"
+APP_DESCRIPTION = "API for VSL Recognition System"
+APP_VERSION = "1.0.0"
 
-# App settings
-APP_TITLE: str = "VSL Detection Backend"
-APP_DESCRIPTION: str = "API for VSL Recognition System"
-APP_VERSION: str = "1.0.0"
+DEFAULT_MODEL_PATH = str(MODELS_DIR / "best.onnx")
 
-# Models
-DEFAULT_MODEL_PATH: str = str(MODELS_DIR / "best.pt")
-
-# Create necessary directories
 TEMP_DIR.mkdir(exist_ok=True)
 FONT_DIR.mkdir(exist_ok=True)
 
-# Initialize font if needed
 def setup_fonts() -> None:
-    """Set up fonts for text rendering"""
     if not FONT_PATH.exists():
         try:
             windows_font = Path("C:/Windows/Fonts/arial.ttf")
@@ -58,5 +43,4 @@ def setup_fonts() -> None:
         except Exception as e:
             print(f"Error setting up font: {e}")
 
-# Call font setup
 setup_fonts()
