@@ -1,6 +1,6 @@
 # Sign language translation model for Vietnamese
 
-A full-stack application for Vietnamese Sign Language detection and recognition using YOLO models. The system provides both file-upload and real-time detection capabilities through a user-friendly web interface.
+A web application for Vietnamese Sign Language detection and recognition using trained YOLO models. The system provides both file-upload and real-time detection capabilities through a user-friendly web interface.
 
 ## Overview
 
@@ -27,6 +27,7 @@ vsld-project/
 │   │   ├── core/             # Core configuration
 │   │   ├── services/         # Logic services
 │   │   └── utils/            # Utility functions
+│   ├── fonts/                # Text fonts
 │   ├── models/               # YOLO model files
 │   ├── requirements.txt      # Python dependencies
 │   └── run.py                # Application entry point
@@ -69,6 +70,9 @@ vsld-project/
 
 The backend will start at `http://localhost:8000` by default.
 
+The API Document created by [SwaggerUI](https://swagger.io/tools/swagger-ui/) can be access at `http://localhost:8000/docs`.
+![API Document](frontend/public/API.jpg)
+
 ### Frontend Setup
 
 1. Navigate to the frontend directory:
@@ -87,6 +91,8 @@ The backend will start at `http://localhost:8000` by default.
    ```
 
 The frontend will be available at `http://localhost:5173`.
+This is the UI when start the client.
+![Client Display](frontend/public/UI.jpg)
 
 ## System Requirements
 
@@ -119,7 +125,7 @@ The frontend will be available at `http://localhost:5173`.
    - User uploads an image or video file
    - Backend processes the file using the YOLO model
    - Results are returned showing detected sign language with bounding boxes
-   - Paraphrasing service converts detected signs to natural language
+   - Paraphrasing service converts the array of detected signs to natural language
 
 2. **Real-time Detection Mode**:
    - User enables webcam access
@@ -133,4 +139,4 @@ MIT License
 
 ## Acknowledgements
 
-This project was developed as part of my thesis at International University, VNU-HCM, Vietnam focusing on assistive technology for the hearing impaired through computer vision and deep learning techniques.
+This project was developed as part of my thesis at International University, VNU-HCM, Vietnam focusing on assistive technology for the hearing impaired through computer vision and deep learning techniques. If this repo is useful for you, give it a star!
