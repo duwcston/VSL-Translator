@@ -20,8 +20,8 @@ This project consists of two main components:
 ## Project Structure
 
 ```
-vsld-project/
-├── vsld-backend/             # FastAPI backend application
+vsl-translator/
+├── backend/             # FastAPI backend application
 │   ├── app/                  # Main application package
 │   │   ├── api/              # API endpoints and routes
 │   │   ├── core/             # Core configuration
@@ -32,7 +32,7 @@ vsld-project/
 │   ├── requirements.txt      # Python dependencies
 │   └── run.py                # Application entry point
 │
-└── vsld-frontend/            # React+TypeScript frontend
+└── frontend/            # React+TypeScript frontend
     ├── src/                  # Source code
     │   ├── api/              # API client services
     │   ├── components/       # React components
@@ -49,7 +49,7 @@ vsld-project/
 
 1. Navigate to the backend directory:
    ```bash
-   cd vsld-backend
+   cd backend
    ```
 
 2. Create and activate a virtual environment:
@@ -77,7 +77,7 @@ The API Document created by [SwaggerUI](https://swagger.io/tools/swagger-ui/) ca
 
 1. Navigate to the frontend directory:
    ```bash
-   cd vsld-frontend
+   cd frontend
    ```
 
 2. Install dependencies:
