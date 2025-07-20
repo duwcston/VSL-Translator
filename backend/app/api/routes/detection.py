@@ -1,244 +1,166 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse, FileResponse
-import os
 import cv2
 from pathlib import Path
 
-from app.core.config import ALLOWED_EXTENSIONS, ALLOWED_VIDEO_EXTENSIONS, ALLOWED_IMAGE_EXTENSIONS, TEMP_DIR, PREDICTION_DIR, CONF_THRESHOLD
-from app.utils.file_utils import is_valid_file, is_video_file, is_image_file, cleanup_runs_directory
+from app.core.config import (
+    ALLOWED_EXTENSIONS, ALLOWED_VIDEO_EXTENSIONS, ALLOWED_IMAGE_EXTENSIONS, 
+    TEMP_DIR, PREDICTION_DIR, CONF_THRESHOLD
+)
+from app.utils.file_utils import is_valid_file, is_video_file, is_image_file, cleanup_runs_directory, safe_remove_file
 from app.services.detector import get_detector
 from app.services.video_processor import process_video_frame_by_frame, convert_avi_to_mp4, stream_video_file
-from app.services.paraphraser import get_paraphraser
+from app.services.sentence_generator import generate_sentence_from_detections
 
 router = APIRouter(tags=["Detection"])
 
-
-async def save_upload_file(file: UploadFile) -> Path:
-    """Save an uploaded file to a temporary location and return the path"""
-    temp_file = TEMP_DIR / f"temp_{file.filename}"
+class DetectionHandler:
+    def __init__(self):
+        self.detector = get_detector()
     
-    try:
-        contents = await file.read()
-        with open(temp_file, "wb") as f:
-            f.write(contents)
-        return temp_file
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail=f"Could not save file: {str(e)}"
-        )
-
-
-def generate_sentence_from_detections(detections):
-    """
-    Generate a complete sentence from detected words using the paraphraser
+    async def save_upload_file(self, file: UploadFile) -> Path:
+        temp_file = TEMP_DIR / f"temp_{file.filename}"
+        try:
+            contents = await file.read()
+            with open(temp_file, "wb") as f:
+                f.write(contents)
+            return temp_file
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                detail=f"Could not save file: {str(e)}"
+            )
     
-    Args:
-        detections: List of detections from YOLO model
+    def validate_file(self, filename: str):
+        if not filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No filename provided"
+            )
         
-    Returns:
-        A complete sentence generated from the detected words
-    """
-    if not detections:
-        return ""
+        if not is_valid_file(filename, ALLOWED_EXTENSIONS):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file format. Allowed formats: {', '.join(ALLOWED_EXTENSIONS)}"
+            )
     
-    if isinstance(detections, list) and detections and isinstance(detections[0], dict):
-        if "frame_number" in detections[0]:
-            all_words = []
-            seen_words = set()
-            
-            for frame in detections:
-                frame_detections = frame.get("detections", [])
-                for detection in frame_detections:
-                    class_name = detection.get("class_name")
-                    if class_name and class_name not in seen_words:
-                        all_words.append(class_name.strip().lower())
-                        seen_words.add(class_name)
-        else:
-            all_words = []
-            seen_words = set()
-            
-            for detection in detections:
-                class_name = detection.get("class_name")
-                if class_name and class_name not in seen_words:
-                    all_words.append(class_name.strip().lower())
-                    seen_words.add(class_name)
-    else:
-        return ""
-    
-    detected_text = " ".join(all_words)
-    
-    if not detected_text:
-        return ""
+    async def process_video(self, temp_path: Path, filename: str):
+        self._validate_video_file(temp_path)
         
-    paraphraser = get_paraphraser()
-    sentence = paraphraser.paraphrase(detected_text)
+        frame_detections, fps = process_video_frame_by_frame(temp_path)
+        self.detector.model.predict(source=temp_path, save=True, conf=CONF_THRESHOLD, verbose=False, max_det=1)
+        
+        video_path = await self._handle_video_conversion()
+        sentence = generate_sentence_from_detections(frame_detections)
+        
+        return {
+            "detections": frame_detections,
+            "video_path": video_path,
+            "type": "video",
+            "fps": fps,
+            "sentence": sentence
+        }
     
-    return sentence
+    def process_image(self, temp_path: Path):
+        image = cv2.imread(str(temp_path))
+        if image is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Failed to read image, it may be corrupted"
+            )
+        
+        detections, _ = self.detector.detect_from_image(image, input_size=640)
+        self.detector.model.predict(source=image, save=True, conf=CONF_THRESHOLD, verbose=False, max_det=1)
+        
+        sentence = generate_sentence_from_detections(detections)
+        return {
+            "detections": detections,
+            "type": "image",
+            "sentence": sentence
+        }
+    
+    def _validate_video_file(self, temp_path: Path):
+        cap = cv2.VideoCapture(str(temp_path))
+        if not cap.isOpened():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to open video file, it may be corrupted"
+            )
+        
+        ret, _ = cap.read()
+        cap.release()
+        
+        if not ret:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to read video frames"
+            )
+    
+    async def _handle_video_conversion(self):
+        avi_files = list(PREDICTION_DIR.glob("*.avi"))
+        if avi_files:
+            avi_path = avi_files[0]
+            mp4_path = avi_path.with_suffix('.mp4')
+            await convert_avi_to_mp4(avi_path, mp4_path)
+            
+            if mp4_path.exists():
+                safe_remove_file(avi_path)
+                return f"runs/detect/predict/{mp4_path.name}"
+        
+        mp4_files = list(PREDICTION_DIR.glob("*.mp4"))
+        if mp4_files:
+            return f"runs/detect/predict/{mp4_files[0].name}"
+        
+        print("Warning: No video files found in prediction directory")
+        return None
+
+
+handler = DetectionHandler()
 
 
 @router.post("/detections")
 async def predict_objects(file: UploadFile = File(...)):
-    """
-    Handle video or image uploads for prediction
-    
-    Args:
-        file: The uploaded video or image file
-        
-    Returns:
-        Dictionary with detections and output file information
-    """
-    if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No filename provided"
-        )
-        
-    if not is_valid_file(file.filename, ALLOWED_EXTENSIONS):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file format. Allowed formats: {', '.join(ALLOWED_EXTENSIONS)}"
-        )
-    
+    handler.validate_file(file.filename)
     cleanup_runs_directory()
     
-    temp_path = await save_upload_file(file)
-
+    temp_path = await handler.save_upload_file(file)
+    
     try:
-        detector = get_detector()
-        
         if is_video_file(file.filename, ALLOWED_VIDEO_EXTENSIONS):
-            cap = cv2.VideoCapture(str(temp_path))
-            if not cap.isOpened():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to open video file, it may be corrupted"
-                )
-            
-            ret, _ = cap.read()
-            cap.release()
-            
-            if not ret:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to read video frames"
-                )
-            
-            frame_detections, fps = process_video_frame_by_frame(temp_path)
-            
-            results = detector.model.predict(source=temp_path, save=True, conf=CONF_THRESHOLD, verbose=False, max_det=1)
-            
-            avi_files = list(PREDICTION_DIR.glob("*.avi"))
-            if avi_files:
-                avi_path = avi_files[0]
-                mp4_path = avi_path.with_suffix('.mp4')
-                await convert_avi_to_mp4(avi_path, mp4_path)
-                
-                # Remove the original AVI file only if MP4 exists
-                if mp4_path.exists():
-                    try:
-                        os.remove(avi_path)
-                        print(f"Successfully removed original AVI file: {avi_path}")
-                    except Exception as e:
-                        print(f"Warning: Could not remove original AVI: {e}")
-                
-                return {
-                    "detections": frame_detections,
-                    "video_path": f"runs/detect/predict/{mp4_path.name}",
-                    "type": "video",
-                    "fps": fps,
-                    "sentence": generate_sentence_from_detections(frame_detections)
-                }
-            else:
-                mp4_files = list(PREDICTION_DIR.glob("*.mp4"))
-                if mp4_files:
-                    return {
-                        "detections": frame_detections,
-                        "video_path": f"runs/detect/predict/{mp4_files[0].name}",
-                        "type": "video",
-                        "fps": fps,
-                        "sentence": generate_sentence_from_detections(frame_detections)
-                    }
-                  # No video file found in the expected location
-                print("Warning: No video files found in prediction directory")
-                all_files = list(PREDICTION_DIR.glob("*"))
-                print(f"Files in prediction directory: {[f.name for f in all_files]}")
-                
-                return {
-                    "detections": frame_detections,
-                    "video_path": None,
-                    "type": "video",
-                    "fps": fps,
-                    "warning": "No output video was generated",
-                    "sentence": generate_sentence_from_detections(frame_detections)
-                }
-            
+            return await handler.process_video(temp_path, file.filename)
         elif is_image_file(file.filename, ALLOWED_IMAGE_EXTENSIONS):
-            # Process image
-            image = cv2.imread(str(temp_path))
-            if image is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, 
-                    detail="Failed to read image, it may be corrupted"
-                )
-            
-            # Detect objects in image
-            detections, _ = detector.detect_from_image(image, input_size=640)
-            
-            # Save the annotated image
-            detector.model.predict(source=image, save=True, conf=CONF_THRESHOLD, verbose=False, max_det=1)
-            
-            # Generate a sentence from detections
-            sentence = generate_sentence_from_detections(detections)
-            return {
-                "detections": detections,
-                "type": "image",
-                "sentence": sentence
-            }
+            return handler.process_image(temp_path)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during processing: {str(e)}"
         )
     finally:
-        if temp_path.exists():
-            try:
-                os.remove(temp_path)
-            except Exception as e:
-                print(f"Error removing temp file: {e}")
+        safe_remove_file(temp_path)
 
 
 @router.get("/detections/result")
 async def get_prediction_result():
-    """
-    Serve the predicted video or image
-    
-    Returns:
-        Video or image content as a streaming or file response
-    """
     if not PREDICTION_DIR.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
             detail="No predictions available"
         )
-        
-    files = list(PREDICTION_DIR.glob("*"))
     
+    files = list(PREDICTION_DIR.glob("*"))
     if not files:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
             detail="No prediction files found"
         )
-        
-    file_path = files[0]
     
+    file_path = files[0]
     if not file_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Prediction file not found"
         )
     
-    # Stream video or serve image based on file extension
     extension = Path(file_path.name).suffix.lower()
     if extension in ALLOWED_VIDEO_EXTENSIONS:
         return StreamingResponse(

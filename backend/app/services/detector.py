@@ -4,79 +4,36 @@ import numpy as np
 import base64
 from time import time
 from typing import Dict, List, Tuple, Optional
-from functools import lru_cache
 from ultralytics import YOLO
 
-from app.core.config import CONF_THRESHOLD
-
+from app.core.config import CONF_THRESHOLD, DEFAULT_MODEL_PATH
 
 class SignLanguageDetector:
-    """
-    Sign Language Detection using YOLO models with optimized performance
-    for real-time video analysis and streaming.
-    """
-    
     def __init__(self, model_path: str, conf_threshold: float = CONF_THRESHOLD):
-        """
-        Initialize the Sign Language Detector
-        
-        Args:
-            model_path: Path to the YOLO model file
-            conf_threshold: Minimum confidence threshold for detections
-        """
         self.model_path = model_path
         self.conf_threshold = conf_threshold
-        self.model = self.load_model(model_path)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        print(f"[SignLanguageDetector] Using device: {self.device}")
+        self.model = self._load_and_optimize_model()
         
-        # Move model to device and optimize
-        if self.device == 'cuda':
-            self.model.to(self.device).half()
-            dummy_input = torch.zeros(1, 3, 640, 640).to(self.device).half()
-            self.model(dummy_input)
-        
-        # Set model to eval mode for inference
-        self.model.eval()
-            
-    def load_model(self, model_path: str) -> YOLO:
-        """
-        Load the YOLO model from the given path
-        
-        Args:
-            model_path: Path to the YOLO model file
-            
-        Returns:
-            YOLO model instance
-        """
+    def _load_and_optimize_model(self) -> YOLO:
         try:
-            model = YOLO(model_path)
-            print(f"[SignLanguageDetector] Model loaded successfully from: {model_path}")
+            model = YOLO(self.model_path)
+            print(f"Model loaded from: {self.model_path}")
+            # model.export(format="onnx", imgz=320, dynamic=True, simplify=True)
+            # onnx_model = YOLO("best.onnx")
+            print(f"Using device: {self.device}")
+            
+            if self.device == 'cuda':
+                model.to(self.device).half()
+                dummy_input = torch.zeros(1, 3, 640, 640).to(self.device).half()
+                model(dummy_input)
+            
             return model
         except Exception as e:
-            print(f"[SignLanguageDetector] Error loading model: {e}")
-            raise RuntimeError(f"Failed to load model from {model_path}: {e}")
+            raise RuntimeError(f"Failed to load model from {self.model_path}: {e}")
     
-    def detect_from_image(self, 
-                         image: np.ndarray, 
-                         input_size: int = 640, 
-                         augment: bool = False) -> Tuple[List[Dict], np.ndarray]:
-        """
-        Perform detection on a single image frame
-        
-        Args:
-            image: Input image as numpy array (BGR format from OpenCV)
-            input_size: Input size for the model
-            augment: Whether to use augmentation during inference
-            
-        Returns:
-            Tuple containing:
-                - List of detection dictionaries
-                - Annotated image with bounding boxes
-        """
-        # Make sure the frame is correctly sized for performance
-        image_resized = self.ensure_frame_size(image, input_size)
-        
+    def detect_from_image(self, image: np.ndarray, input_size: int = 640) -> Tuple[List[Dict], np.ndarray]:
+        image_resized = self._ensure_frame_size(image, input_size)
         start_time = time()
         
         results = self.model.predict(
@@ -84,10 +41,16 @@ class SignLanguageDetector:
             conf=self.conf_threshold,
             verbose=False,
             imgsz=input_size,
-            augment=augment,
             retina_masks=False
         )
         
+        detections = self._extract_detections(results)
+        fps = 1 / (time() - start_time) if (time() - start_time) > 0 else 0
+        annotated_image = self._draw_detections(image, detections, fps)
+        
+        return detections, annotated_image
+    
+    def _extract_detections(self, results) -> List[Dict]:
         detections = []
         if results and results[0].boxes:
             for box in results[0].boxes:
@@ -96,182 +59,76 @@ class SignLanguageDetector:
                 confidence = float(box.conf[0])
                 
                 if confidence >= self.conf_threshold:
-                    # Get coordinates in x1, y1, x2, y2 format
                     coords = box.xyxy[0].tolist() if hasattr(box, 'xyxy') and len(box.xyxy) > 0 else None
-                    
                     detections.append({
                         "class_name": class_name,
                         "confidence": confidence,
                         "bbox": coords
                     })
-        
-        end_time = time()
-        fps = 1 / (end_time - start_time) if (end_time - start_time) > 0 else 0
-        
-        # Draw bounding boxes on the image
-        annotated_image = self.draw_boxes(image, detections, fps)
-        
-        return detections, annotated_image
+        return detections
     
-    def ensure_frame_size(self, frame: np.ndarray, target_size: int) -> np.ndarray:
-        """
-        Ensure the frame is correctly sized without changing aspect ratio
-        
-        Args:
-            frame: Input frame
-            target_size: Target size (will be used for both dimensions)
-            
-        Returns:
-            Resized frame
-        """
+    def _ensure_frame_size(self, frame: np.ndarray, target_size: int) -> np.ndarray:
         if frame is None:
             return None
-            
-        h, w = frame.shape[:2]
         
-        # Only resize if needed
+        h, w = frame.shape[:2]
         if h != target_size or w != target_size:
             frame = cv2.resize(frame, (target_size, target_size))
-            
         return frame
     
-    def draw_boxes(self, 
-                  image: np.ndarray, 
-                  detections: List[Dict], 
-                  fps: Optional[float] = None) -> np.ndarray:
-        """
-        Draw bounding boxes and labels on the image
-        
-        Args:
-            image: Input image
-            detections: List of detection dictionaries
-            fps: Frames per second (optional, for display)
-            
-        Returns:
-            Image with bounding boxes and labels drawn
-        """
-        # Create a copy to avoid modifying the original
+    def _draw_detections(self, image: np.ndarray, detections: List[Dict], fps: Optional[float] = None) -> np.ndarray:
         annotated_image = image.copy()
         
-        # Draw each detection
         for det in detections:
             if "bbox" not in det or det["bbox"] is None:
                 continue
                 
             x1, y1, x2, y2 = map(int, det["bbox"])
             
-            # Draw bounding box
             cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
             label = f"{det['class_name']}: {det['confidence']:.2f}"
             text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_DUPLEX, 0.6, 1)[0]
             
-            cv2.rectangle(annotated_image, 
-                         (x1, y1 - 20), 
-                         (x1 + text_size[0], y1), 
-                         (0, 255, 0), -1)
-            
-            cv2.putText(annotated_image, 
-                       label, 
-                       (x1, y1 - 5), 
-                       cv2.FONT_HERSHEY_DUPLEX, 
-                       0.6, (0, 0, 0), 1)
+            cv2.rectangle(annotated_image, (x1, y1 - 20), (x1 + text_size[0], y1), (0, 255, 0), -1)
+            cv2.putText(annotated_image, label, (x1, y1 - 5), cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 0, 0), 1)
         
         if fps is not None:
-            cv2.putText(annotated_image, 
-                      f'FPS: {int(fps)}', 
-                      (20, 50), 
-                      cv2.FONT_HERSHEY_SIMPLEX, 
-                      1, (0, 255, 0), 2)
+            cv2.putText(annotated_image, f'FPS: {int(fps)}', (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             
         return annotated_image
     
-    def process_video(self, 
-                     video_path: str,
-                     output_path: Optional[str] = None, 
-                     max_frames: int = 1000) -> List[Dict]:
-        """
-        Process a video file and get detections for each frame
-        
-        Args:
-            video_path: Path to the input video file
-            output_path: Path to save the output video (if None, no video is saved)
-            max_frames: Maximum number of frames to process
-            
-        Returns:
-            List of dictionaries containing frame number, timestamp, and detections
-        """
-        # Initialize video capture
+    def process_video_frames(self, video_path: str, max_frames: int = 1000) -> Tuple[List[Dict], float]:
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise ValueError(f"Failed to open video file: {video_path}")
         
         fps = cap.get(cv2.CAP_PROP_FPS)
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        
-        out = None
-        if output_path:
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-        
         frame_detections = []
         frame_number = 0
         
-        # Process each frame
         while True:
             ret, frame = cap.read()
-            if not ret:
+            if not ret or frame_number >= max_frames:
                 break
                 
             timestamp = frame_number / fps
+            detections, _ = self.detect_from_image(frame)
             
-            detections, annotated_frame = self.detect_from_image(frame)
-            
-            if out and annotated_frame is not None:
-                out.write(annotated_frame)
-            
-            # Add to results
-            frame_result = {
+            frame_detections.append({
                 "frame_number": frame_number,
                 "timestamp": timestamp,
                 "detections": detections
-            }
-            frame_detections.append(frame_result)
+            })
             
             frame_number += 1
-            
-            if frame_number >= max_frames:
-                break
         
         cap.release()
-        if out:
-            out.release()
-            
-        return frame_detections
+        return frame_detections, fps
     
-    def process_frame_for_websocket(self, 
-                                  frame: np.ndarray, 
-                                  input_size: int = 320,
-                                  return_image: bool = False) -> Dict:
-        """
-        Process a single frame for WebSocket streaming
+    def process_frame_for_websocket(self, frame: np.ndarray, input_size: int = 320, return_image: bool = False) -> Dict:
+        detections, annotated_image = self.detect_from_image(frame, input_size=input_size)
         
-        Args:
-            frame: Input frame
-            input_size: Input size for the model
-            return_image: Whether to return the annotated image
-            
-        Returns:
-            Dictionary with detections and optionally the annotated image
-        """
-        # Detect objects
-        detections, annotated_image = self.detect_from_image(
-            frame, input_size=input_size
-        )
-        
-        response = {
-            "detections": detections
-        }
+        response = {"detections": detections}
         
         if return_image:
             _, buffer = cv2.imencode('.jpg', annotated_image, [cv2.IMWRITE_JPEG_QUALITY, 80])
@@ -280,28 +137,15 @@ class SignLanguageDetector:
             
         return response
 
+_detector_instance = None
 
-@lru_cache(maxsize=1)
-def get_detector(model_path: str = None, conf_threshold: float = None) -> SignLanguageDetector:
-    """
-    Get a cached instance of SignLanguageDetector
-    
-    Args:
-        model_path: Path to the model file (optional)
-        conf_threshold: Confidence threshold (optional)
-        
-    Returns:
-        SignLanguageDetector instance
-    """
-    from app.core.config import DEFAULT_MODEL_PATH
-    
-    if model_path is None:
-        model_path = DEFAULT_MODEL_PATH
-        
-    if conf_threshold is None:
-        conf_threshold = CONF_THRESHOLD
-        
-    return SignLanguageDetector(
-        model_path=model_path,
-        conf_threshold=conf_threshold
-    )
+def get_detector() -> SignLanguageDetector:
+    global _detector_instance
+    if _detector_instance is None:
+        _detector_instance = SignLanguageDetector(DEFAULT_MODEL_PATH)
+    return _detector_instance
+
+def initialize_detector():
+    global _detector_instance
+    if _detector_instance is None:
+        _detector_instance = SignLanguageDetector(DEFAULT_MODEL_PATH)
