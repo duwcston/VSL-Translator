@@ -16,21 +16,17 @@ export const useFileUpload = () => {
     const [currentStage, setCurrentStage] = useState<'upload' | 'processing'>('upload');
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Update current frame detections when video time changes or results change
     const updateCurrentFrameDetections = (time: number, resultsData: Record<string, DetectionResponse>) => {
         if (status === EUploadStatus.Success && Object.keys(resultsData).length > 0) {
             const result = Object.values(resultsData)[0];
 
-            // Check if we have frame-specific detections
             if (result && Array.isArray(result.detections) &&
                 result.detections.length > 0 && 'frame_number' in result.detections[0]) {
 
-                // Find the closest frame to current time
                 const frameDetections = result.detections as FrameDetection[];
                 const fps = result.fps || 30; // Default to 30fps if not provided
                 const currentFrame = Math.round(time * fps);
 
-                // Find the frame detection that matches or is closest to the current frame
                 const closestFrame = frameDetections.reduce((prev, curr) => {
                     return Math.abs(curr.frame_number - currentFrame) <
                         Math.abs(prev.frame_number - currentFrame) ? curr : prev;
@@ -38,7 +34,6 @@ export const useFileUpload = () => {
 
                 setCurrentFrameDetections(closestFrame.detections);
             }
-            // If there are no frame-specific detections, use the overall detections
             else if (result && Array.isArray(result.detections)) {
                 setCurrentFrameDetections(result.detections as Detection[]);
             }

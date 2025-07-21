@@ -98,8 +98,8 @@ const DetectionDisplay: React.FC<DetectionDisplayProps> = ({
                                                                 {(detection.confidence * 100).toFixed(1)}%
                                                             </span>
                                                         </div>
-                                                        <div className={`w-3 h-3 rounded-full ${detection.confidence > 0.8 ? 'bg-green-500' :
-                                                            detection.confidence > 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                                                        <div className={`w-3 h-3 rounded-full ${detection.confidence > 0.9 ? 'bg-green-500' :
+                                                            detection.confidence > 0.7 ? 'bg-yellow-500' : 'bg-red-500'
                                                             }`} />
                                                     </div>
                                                 </div>

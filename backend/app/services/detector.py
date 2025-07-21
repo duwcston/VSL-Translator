@@ -23,10 +23,10 @@ class SignLanguageDetector:
             # onnx_model = YOLO("best.onnx")
             print(f"Using device: {self.device}")
             
-            if self.device == 'cuda':
-                model.to(self.device).half()
-                dummy_input = torch.zeros(1, 3, 640, 640).to(self.device).half()
-                model(dummy_input)
+            # if self.device == 'cuda':
+            #     model.to(self.device).half()
+            #     dummy_input = torch.zeros(1, 3, 640, 640).to(self.device).half()
+            #     model(dummy_input)
             
             return model
         except Exception as e:
@@ -41,7 +41,8 @@ class SignLanguageDetector:
             conf=self.conf_threshold,
             verbose=False,
             imgsz=input_size,
-            retina_masks=False
+            retina_masks=False,
+            max_det=1
         )
         
         detections = self._extract_detections(results)

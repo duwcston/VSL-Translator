@@ -1,4 +1,3 @@
-import cv2
 import moviepy.editor as moviepy
 from pathlib import Path
 from typing import Tuple, List, Dict
