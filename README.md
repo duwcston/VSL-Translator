@@ -1,7 +1,10 @@
 # Sign language translation model for Vietnamese
 
 A web application for Vietnamese Sign Language detection and recognition using trained YOLO models. The system provides both file-upload and real-time detection capabilities through a user-friendly web interface.
-**Thesis Report**: [Sign Language Translation Model for Vietnamese](./ITCSIU21112_NguyenDucToan.pdf)  
+
+**Thesis Report**: [Sign Language Translation Model for Vietnamese](./ITCSIU21112_NguyenDucToan.pdf)
+
+**Thesis Demo**: [Demo Video](./ITCSIU21112_NguyenDucToan.mp4)
 
 ## Overview
 
