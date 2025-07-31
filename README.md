@@ -47,7 +47,13 @@ vsl-translator/
     └── package.json          # NPM dependencies
 ```
 
-## Getting Started
+## Setup Instructions
+
+### Clone the Repository
+```bash
+git clone https://github.com/duwcston/VSL-Translator.git
+cd VSL-Translator
+```
 
 ### Backend Setup
 
