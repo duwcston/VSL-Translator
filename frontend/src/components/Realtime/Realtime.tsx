@@ -4,8 +4,6 @@ import { Camera, Play, Square, AlertTriangle } from "lucide-react";
 import Button from "../UI/Button";
 import Card from "../UI/Card";
 import VideoStream from "./VideoStream";
-// import FrameRateControl from "./Realtime/FrameRateControl";
-import PerformanceSettings from "./PerformanceSettings";
 import ProcessedFrameDisplay from "./ProcessedFrameDisplay";
 import DetectionResults from "./DetectionResults";
 import { useWebcam } from "../../hooks/useWebcam";
@@ -19,10 +17,10 @@ const Realtime: React.FC<RealtimeProps> = ({ isActive = true }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [returnImage, setReturnImage] = useState(false);
+  const [returnImage] = useState(false);
   const [frameRate] = useState(10);
-  const [skipFrames, setSkipFrames] = useState(0);
-  const [resizeFactor, setResizeFactor] = useState(1.0);
+  const [skipFrames] = useState(0);
+  const [resizeFactor] = useState(1.0);
   const [inputSize] = useState(320);
 
   const frameInterval = useRef<NodeJS.Timeout | null>(null);
@@ -175,16 +173,6 @@ const Realtime: React.FC<RealtimeProps> = ({ isActive = true }) => {
                 Settings
               </h3>
               <div className="space-y-4">
-                <PerformanceSettings
-                  skipFrames={skipFrames}
-                  setSkipFrames={setSkipFrames}
-                  resizeFactor={resizeFactor}
-                  setResizeFactor={setResizeFactor}
-                  returnImage={returnImage}
-                  setReturnImage={setReturnImage}
-                  isStreaming={isStreaming}
-                />
-
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}

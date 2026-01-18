@@ -30,17 +30,22 @@ DEFAULT_MODEL_PATH = str(MODELS_DIR / "best.onnx")
 TEMP_DIR.mkdir(exist_ok=True)
 FONT_DIR.mkdir(exist_ok=True)
 
+
 def setup_fonts() -> None:
     if not FONT_PATH.exists():
         try:
             windows_font = Path("C:/Windows/Fonts/arial.ttf")
             if windows_font.exists():
                 import shutil
+
                 shutil.copy(windows_font, FONT_PATH)
                 print(f"Copied Arial font from system fonts to {FONT_PATH}")
             else:
-                print(f"Arial font not found. Please place arial.ttf in the {FONT_DIR} directory.")
+                print(
+                    f"Arial font not found. Please place arial.ttf in the {FONT_DIR} directory."
+                )
         except Exception as e:
             print(f"Error setting up font: {e}")
+
 
 setup_fonts()
