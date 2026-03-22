@@ -1,6 +1,7 @@
 # Sign language translation model for Vietnamese
 
-A web application for Vietnamese Sign Language detection and recognition using trained YOLO models. The system provides both file-upload and real-time detection capabilities through a user-friendly web interface.
+A web application for Vietnamese Sign Language detection and recognition using trained YOLO models. The system
+provides both file-upload and real-time detection capabilities through a user-friendly web interface.
 
 **Thesis Report**: [Sign Language Translation Model for Vietnamese](./ITCSIU21112_NguyenDucToan.pdf)
 
@@ -24,7 +25,7 @@ This project consists of two main components:
 ## Project Structure
 
 ```
-vsl-translator/
+ASL-translator/
 ├── backend/             # FastAPI backend application
 │   ├── app/                  # Main application package
 │   │   ├── api/              # API endpoints and routes
@@ -50,80 +51,89 @@ vsl-translator/
 ## Setup Instructions
 
 ### Clone the Repository
+
 ```bash
-git clone https://github.com/duwcston/VSL-Translator.git
-cd VSL-Translator
+git clone https://github.com/duwcston/ASL-Translator.git
+cd ASL-Translator
 ```
 
 ### Backend Setup
 
 1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+
+    ```bash
+    cd backend
+    ```
 
 2. Create and activate a virtual environment:
-   ```bash
-   python -m venv .venv
-   .\.venv\Scripts\activate
-   ```
+
+    ```bash
+    python -m venv .venv
+    .\.venv\Scripts\activate
+    ```
 
 3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 4. Run the FastAPI server:
-   ```bash
-   python run.py
-   ```
+    ```bash
+    python run.py
+    ```
 
 The backend will start at `http://localhost:8000` by default.
 
-The API Document created by [SwaggerUI](https://swagger.io/tools/swagger-ui/) can be access at `http://localhost:8000/docs`.
-![API Document](frontend/public/API.jpg)
+The API Document created by [SwaggerUI](https://swagger.io/tools/swagger-ui/) can be access at
+`http://localhost:8000/docs`. ![API Document](frontend/public/API.jpg)
 
 ### Frontend Setup
 
 1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+
+    ```bash
+    cd frontend
+    ```
 
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
+
+    ```bash
+    npm install
+    ```
 
 3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+    ```bash
+    npm run dev
+    ```
 
-The frontend will be available at `http://localhost:5173`.
-This is the UI when start the client.
+The frontend will be available at `http://localhost:5173`. This is the UI when start the client.
 ![Client Display](frontend/public/UI.jpg)
 
 ## System Requirements
 
 ### Backend
+
 - Python 3.12+
 - CUDA-compatible GPU (recommended for optimal performance)
 - 4GB+ RAM
 
 ### Frontend
+
 - Node.js 18+
 - Modern web browser with WebSocket support
 
 ## Technologies Used
 
 ### Backend
+
 - FastAPI - Web framework for building APIs
 - Ultralytics YOLO11 - Object detection model
 - OpenCV - Computer vision processing
 - WebSockets - Real-time communication
 
 ### Frontend
+
 - React 19
 - TypeScript
 - Vite - Build tool and development server
@@ -132,16 +142,16 @@ This is the UI when start the client.
 ## Application Workflow
 
 1. **File Upload Mode**:
-   - User uploads an image or video file
-   - Backend processes the file using the YOLO model
-   - Results are returned showing detected sign language with bounding boxes
-   - Paraphrasing service converts the array of detected signs to natural language
+    - User uploads an image or video file
+    - Backend processes the file using the YOLO model
+    - Results are returned showing detected sign language with bounding boxes
+    - Paraphrasing service converts the array of detected signs to natural language
 
 2. **Real-time Detection Mode**:
-   - User enables webcam access
-   - Video frames are sent to backend via WebSocket
-   - Real-time detection results are streamed back to the frontend
-   - Detected signs are displayed with visual indicators and text output
+    - User enables webcam access
+    - Video frames are sent to backend via WebSocket
+    - Real-time detection results are streamed back to the frontend
+    - Detected signs are displayed with visual indicators and text output
 
 ## License
 
@@ -149,4 +159,5 @@ MIT License
 
 ## Acknowledgements
 
-This project was developed as part of my thesis at International University, VNU-HCM, Vietnam focusing on assistive technology for the hearing impaired through computer vision and deep learning techniques!
+This project was developed as part of my thesis at International University, VNU-HCM, Vietnam focusing on assistive
+technology for the hearing impaired through computer vision and deep learning techniques!

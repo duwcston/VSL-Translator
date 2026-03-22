@@ -142,18 +142,6 @@ async def handle_websocket_detection(websocket: WebSocket):
                     await websocket.send_json({"error": "No image data received"})
                     continue
 
-                handler.update_settings(data_json)
-
-                if handler.should_skip_frame():
-                    await websocket.send_json(
-                        {
-                            "timestamp": data_json.get("timestamp", None),
-                            "detections": [],
-                            "skipped": True,
-                        }
-                    )
-                    continue
-
                 frame = handler.decode_frame(data_json["image"])
                 if frame is None:
                     await websocket.send_json({"error": "Invalid image data"})

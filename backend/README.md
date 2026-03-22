@@ -1,14 +1,14 @@
-# VSL Detection Backend
+# ASL Detection Backend
 
-A FastAPI-based backend for Vietnamese Sign Language (VSL) detection using YOLO models with ONNX support.
+A FastAPI-based backend for Vietnamese Sign Language (ASL) detection using YOLO models with ONNX support.
 
 ## Features
 
--   **Real-time Detection**: WebSocket-based real-time sign language detection
--   **File Processing**: Support for image and video file uploads
--   **ONNX Support**: Optimized inference using ONNX models
--   **Sentence Generation**: Automatic conversion of detected signs to readable sentences
--   **Cross-platform**: Compatible with Windows, macOS, and Linux
+- **Real-time Detection**: WebSocket-based real-time sign language detection
+- **File Processing**: Support for image and video file uploads
+- **ONNX Support**: Optimized inference using ONNX models
+- **Sentence Generation**: Automatic conversion of detected signs to readable sentences
+- **Cross-platform**: Compatible with Windows, macOS, and Linux
 
 ## Project Structure
 
@@ -67,6 +67,7 @@ python -m venv .venv
 ```bash
 .venv\Scripts\activate
 ```
+
 You should see `(.venv)` in your command prompt
 
 ### 4. Install dependencies
@@ -83,10 +84,10 @@ python run.py
 
 ## API Endpoints
 
--   `GET /v1/status` - Check system status
--   `POST /v1/detections` - Upload and process images or videos
--   `GET /v1/detections/result` - Get the latest detection results
--   `WebSocket /v1/detections/stream` - Real-time detection via WebSocket
+- `GET /v1/status` - Check system status
+- `POST /v1/detections` - Upload and process images or videos
+- `GET /v1/detections/result` - Get the latest detection results
+- `WebSocket /v1/detections/stream` - Real-time detection via WebSocket
 
 ## Next Steps
 

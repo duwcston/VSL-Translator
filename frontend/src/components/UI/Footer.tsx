@@ -34,10 +34,10 @@ const Footer = () => {
             </motion.div>
             <div>
               <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                VSL Translator
+                ASL Translator
               </h3>
               <p className="text-xs text-gray-500">
-                Vietnamese Sign Language Detection
+                American Sign Language Detection
               </p>
             </div>
           </motion.div>
@@ -76,7 +76,7 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             {/* Copyright */}
             <div className="flex items-center space-x-2 text-gray-600 text-sm">
-              <span>© {currentYear} VSL Translator</span>
+              <span>© {currentYear} ASL Translator</span>
             </div>
 
             <div className="flex items-center space-x-2 text-xs text-gray-600">

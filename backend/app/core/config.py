@@ -21,11 +21,11 @@ CHUNK_SIZE = 1024 * 1024
 
 CORS_ORIGINS = ["http://localhost:5173"]
 
-APP_TITLE = "VSL Detection Backend"
-APP_DESCRIPTION = "API for VSL Recognition System"
+APP_TITLE = "ASL Detection Backend"
+APP_DESCRIPTION = "API for ASL Recognition System"
 APP_VERSION = "1.0.0"
 
-DEFAULT_MODEL_PATH = str(MODELS_DIR / "best.onnx")
+DEFAULT_MODEL_PATH = str(MODELS_DIR / "ASL.onnx")
 
 TEMP_DIR.mkdir(exist_ok=True)
 FONT_DIR.mkdir(exist_ok=True)

@@ -1,4 +1,3 @@
-import React from "react";
 import { motion } from "framer-motion";
 import Realtime from "../components/Realtime/Realtime";
 
@@ -6,9 +5,7 @@ interface RealtimeSectionProps {
   isActive?: boolean;
 }
 
-const RealtimeSection: React.FC<RealtimeSectionProps> = ({
-  isActive = true,
-}) => {
+function RealtimeSection({ isActive = true }: RealtimeSectionProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -27,6 +24,6 @@ const RealtimeSection: React.FC<RealtimeSectionProps> = ({
       <Realtime isActive={isActive} />
     </motion.div>
   );
-};
+}
 
 export default RealtimeSection;

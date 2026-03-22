@@ -127,7 +127,7 @@ export default function Uploader() {
                 <p className="text-gray-600 text-sm">
                   {currentStage === "upload"
                     ? "Uploading file to server..."
-                    : "Running VSL detection on your file..."}
+                    : "Running ASL detection on your file..."}
                 </p>
               </div>
             </div>

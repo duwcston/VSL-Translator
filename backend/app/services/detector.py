@@ -20,8 +20,6 @@ class SignLanguageDetector:
         try:
             model = YOLO(self.model_path)
             print(f"Model loaded from: {self.model_path}")
-            # model.export(format="onnx", imgz=320, dynamic=True, simplify=True)
-            # onnx_model = YOLO("best.onnx")
             print(f"Using device: {self.device}")
 
             # if self.device == 'cuda':
