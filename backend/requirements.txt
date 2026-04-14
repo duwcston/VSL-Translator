@@ -2,10 +2,10 @@ fastapi===0.135.3
 ultralytics==8.3.78
 opencv-python==4.11.0.86
 moviepy===1.0.3
-uvicorn===0.22.0
-python-multipart===0.0.20
+uvicorn===0.44.0
+python-multipart===0.0.22
 websockets==12.0
 pillow==12.2.0
-transformers==5.0.0rc3
-sentencepiece===0.2.0
-onnxruntime===1.22.1
+transformers==5.5.4
+sentencepiece===0.2.1
+onnxruntime===1.24.4
