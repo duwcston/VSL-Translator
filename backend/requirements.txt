@@ -1,5 +1,5 @@
 fastapi===0.115.12
-ultralytics==8.3.78
+ultralytics==8.4.37
 opencv-python==4.11.0.86
 moviepy===1.0.3
 uvicorn===0.44.0
