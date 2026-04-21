@@ -1,4 +1,4 @@
-fastapi===0.135.3
+fastapi===0.136.0
 ultralytics==8.4.37
 opencv-python==4.11.0.86
 moviepy===2.2.1
