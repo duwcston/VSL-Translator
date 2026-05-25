@@ -68,12 +68,12 @@ function MediaDisplay({
             <h3 className="text-xl font-semibold text-gray-800">
               {status === EUploadStatus.Uploading
                 ? "Uploading File"
-                : "AI Processing"}
+                : "Processing"}
             </h3>
             <p className="text-gray-600">
               {status === EUploadStatus.Uploading
                 ? "Please wait while your file is being uploaded..."
-                : "Running AI sign language detection on your file..."}
+                : "Running sign language detection on your file..."}
             </p>
             <div className="flex items-center justify-center space-x-2 mt-4">
               <div className="flex space-x-1">

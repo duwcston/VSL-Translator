@@ -2,17 +2,17 @@ from typing import List, Dict
 from app.services.paraphraser import get_paraphraser
 
 
-def generate_sentence_from_detections(detections: List[Dict]) -> str:
-    if not detections:
-        return ""
+# def generate_sentence_from_detections(detections: List[Dict]) -> str:
+#     if not detections:
+#         return ""
 
-    words = _extract_unique_words(detections)
-    if not words:
-        return ""
+#     words = _extract_unique_words(detections)
+#     if not words:
+#         return ""
 
-    detected_text = " ".join(words)
-    paraphraser = get_paraphraser()
-    return paraphraser.paraphrase(detected_text)
+#     detected_text = " ".join(words)
+#     paraphraser = get_paraphraser()
+#     return paraphraser.paraphrase(detected_text)
 
 
 def _extract_unique_words(detections: List[Dict]) -> List[str]:

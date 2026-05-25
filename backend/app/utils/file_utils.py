@@ -3,7 +3,7 @@ import shutil
 import os
 from typing import Set
 
-from app.core.config import PREDICTION_DIR
+from app.config.config import PREDICTION_DIR
 
 
 def get_file_extension(filename: str) -> str:

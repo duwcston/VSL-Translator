@@ -6,9 +6,10 @@ CKPT = "chieunq/vietnamese-sentence-paraphase"
 
 class Paraphraser:
     def __init__(self):
-        self.tokenizer = MT5Tokenizer.from_pretrained(CKPT, legacy=True)
-        self.model = MT5ForConditionalGeneration.from_pretrained(CKPT)
-        print("Vietnamese MT5 paraphrase model loaded successfully")
+        # self.tokenizer = MT5Tokenizer.from_pretrained(CKPT, legacy=True)
+        # self.model = MT5ForConditionalGeneration.from_pretrained(CKPT)
+        # print("Vietnamese MT5 paraphrase model loaded successfully")
+        pass
 
     def paraphrase(self, text: str) -> str:
         if len(text.split()) <= 2:

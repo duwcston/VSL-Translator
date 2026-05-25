@@ -212,7 +212,7 @@ function DetectionDisplay({
               )}
 
             {/* Paraphrased Sentence */}
-            {Object.values(results)[0]?.sentence && (
+            {/* {Object.values(results)[0]?.sentence && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -231,7 +231,7 @@ function DetectionDisplay({
                   </p>
                 </div>
               </motion.div>
-            )}
+            )} */}
           </div>
         ) : (
           <motion.div
@@ -239,10 +239,6 @@ function DetectionDisplay({
             animate={{ opacity: 1 }}
             className="text-center"
           >
-            {/* <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <Eye className="w-10 h-10 text-blue-600" />
-                        </div> */}
-            {/* <h4 className="text-lg font-semibold text-gray-700 mb-2">Ready to Analyze</h4> */}
             <p className="text-gray-500">
               Upload a file to see detection results
             </p>

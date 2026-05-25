@@ -4,5 +4,5 @@ from app.services.video_processor import (
     convert_avi_to_mp4,
     stream_video_file,
 )
-from app.services.sentence_generator import generate_sentence_from_detections
-from app.services.paraphraser import get_paraphraser
+# from app.services.sentence_generator import generate_sentence_from_detections
+# from app.services.paraphraser import get_paraphraser

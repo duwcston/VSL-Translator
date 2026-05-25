@@ -18,13 +18,13 @@ function Realtime({ isActive = true }: RealtimeProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [returnImage, setReturnImage] = useState(false);
-  const [frameRate] = useState(10);
+  const [returnImage, setReturnImage] = useState(true);
+  const [frameRate] = useState(5);
   const [skipFrames, setSkipFrames] = useState(0);
   const [resizeFactor, setResizeFactor] = useState(1.0);
   const [inputSize] = useState(320);
 
-  const frameInterval = useRef<NodeJS.Timeout | null>(null);
+  const frameInterval = useRef<number | null>(null);
 
   // Custom hooks
   const { startWebcam, stopWebcam, captureFrame, streamRef } = useWebcam();
@@ -41,11 +41,17 @@ function Realtime({ isActive = true }: RealtimeProps) {
 
   // Capture frame from video and send to the server
   const handleCaptureFrame = useCallback(() => {
-    if (isStreaming) {
-      const frameData = captureFrame(videoRef, canvasRef);
-      if (frameData) {
-        sendFrame(frameData, returnImage, skipFrames, resizeFactor, inputSize);
-      }
+    if (!isStreaming) return;
+
+    const frameData = captureFrame(videoRef, canvasRef);
+    if (frameData) {
+      sendFrame(
+        frameData,
+        returnImage,
+        skipFrames,
+        resizeFactor,
+        inputSize,
+      );
     }
   }, [
     isStreaming,

@@ -1,12 +1,16 @@
-from fastapi import WebSocket, WebSocketDisconnect
+import asyncio
 import json
 import cv2
 import numpy as np
 import base64
+from concurrent.futures import ThreadPoolExecutor
+from fastapi import WebSocket, WebSocketDisconnect
 from PIL import Image, ImageDraw, ImageFont
 
-from app.core.config import FONT_PATH, WEBSOCKET_CONF_THRESHOLD
+from app.config.config import FONT_PATH, WEBSOCKET_CONF_THRESHOLD
 from app.services.detector import get_detector
+
+executor = ThreadPoolExecutor(max_workers=4)
 
 
 class WebSocketManager:
@@ -132,29 +136,41 @@ async def handle_websocket_detection(websocket: WebSocket):
 
     await manager.connect(websocket)
 
+    async def process_and_send(data_json: dict):
+        try:
+            if "image" not in data_json:
+                await websocket.send_json({"error": "No image data received"})
+                return
+
+            frame = await asyncio.get_running_loop().run_in_executor(
+                executor, handler.decode_frame, data_json["image"]
+            )
+            if frame is None:
+                await websocket.send_json({"error": "Invalid image data"})
+                return
+
+            response = await asyncio.get_running_loop().run_in_executor(
+                executor,
+                handler.detect_and_process,
+                frame,
+                data_json.get("return_image", False),
+                data_json.get("timestamp", None),
+            )
+
+            await websocket.send_json(response)
+        except Exception as e:
+            try:
+                await websocket.send_json({"error": f"Processing error: {str(e)}"})
+            except Exception:
+                print(f"WebSocket connection closed during error handling: {str(e)}")
+
     try:
         while True:
             data = await websocket.receive_text()
 
             try:
                 data_json = json.loads(data)
-                if "image" not in data_json:
-                    await websocket.send_json({"error": "No image data received"})
-                    continue
-
-                frame = handler.decode_frame(data_json["image"])
-                if frame is None:
-                    await websocket.send_json({"error": "Invalid image data"})
-                    continue
-
-                response = handler.detect_and_process(
-                    frame,
-                    return_image=data_json.get("return_image", False),
-                    timestamp=data_json.get("timestamp", None),
-                )
-
-                await websocket.send_json(response)
-
+                asyncio.create_task(process_and_send(data_json))
             except json.JSONDecodeError:
                 try:
                     await websocket.send_json({"error": "Invalid JSON data"})

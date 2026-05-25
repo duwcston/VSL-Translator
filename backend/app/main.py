@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import CORS_ORIGINS, APP_TITLE, APP_DESCRIPTION, APP_VERSION
+from app.config.config import CORS_ORIGINS, APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from app.api.routes import api_router
 from app.api.routes.websocket import handle_websocket_detection
 from app.services.detector import initialize_detector

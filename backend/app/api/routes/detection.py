@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 import cv2
 from pathlib import Path
 
-from app.core.config import (
+from app.config.config import (
     ALLOWED_EXTENSIONS,
     ALLOWED_VIDEO_EXTENSIONS,
     ALLOWED_IMAGE_EXTENSIONS,
@@ -24,7 +24,7 @@ from app.services.video_processor import (
     convert_avi_to_mp4,
     stream_video_file,
 )
-from app.services.sentence_generator import generate_sentence_from_detections
+# from app.services.sentence_generator import generate_sentence_from_detections
 
 router = APIRouter(tags=["Detection"])
 
@@ -67,14 +67,14 @@ class DetectionHandler:
         )
 
         video_path = await self._handle_video_conversion()
-        sentence = generate_sentence_from_detections(frame_detections)
+        # sentence = generate_sentence_from_detections(frame_detections)
 
         return {
             "detections": frame_detections,
             "video_path": video_path,
             "type": "video",
             "fps": fps,
-            "sentence": sentence,
+            # "sentence": sentence,
         }
 
     def process_image(self, temp_path: Path):
@@ -90,8 +90,8 @@ class DetectionHandler:
             source=image, save=True, conf=CONF_THRESHOLD, verbose=False, max_det=1
         )
 
-        sentence = generate_sentence_from_detections(detections)
-        return {"detections": detections, "type": "image", "sentence": sentence}
+        # sentence = generate_sentence_from_detections(detections)
+        return {"detections": detections, "type": "image", "sentence": ""}
 
     def _validate_video_file(self, temp_path: Path):
         cap = cv2.VideoCapture(str(temp_path))

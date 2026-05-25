@@ -6,7 +6,7 @@ from time import time
 from typing import Dict, List, Tuple, Optional
 from ultralytics import YOLO
 
-from app.core.config import CONF_THRESHOLD, DEFAULT_MODEL_PATH
+from app.config.config import CONF_THRESHOLD, DEFAULT_MODEL_PATH
 
 
 class SignLanguageDetector:
@@ -22,10 +22,11 @@ class SignLanguageDetector:
             print(f"Model loaded from: {self.model_path}")
             print(f"Using device: {self.device}")
 
-            # if self.device == 'cuda':
-            #     model.to(self.device).half()
-            #     dummy_input = torch.zeros(1, 3, 640, 640).to(self.device).half()
-            #     model(dummy_input)
+            if self.device == 'cuda':
+                model.to(self.device).half()
+                # Warm up the model
+                dummy_input = torch.zeros(1, 3, 320, 320).to(self.device).half()
+                model(dummy_input)
 
             return model
         except Exception as e:
