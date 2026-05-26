@@ -2,7 +2,7 @@ fastapi===0.136.0
 ultralytics==8.4.37
 opencv-python==4.13.0.92
 moviepy===2.2.1
-uvicorn===0.45.0
+uvicorn===0.48.0
 python-multipart===0.0.26
 websockets==16.0
 pillow==12.2.0
