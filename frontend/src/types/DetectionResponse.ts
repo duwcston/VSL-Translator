@@ -25,3 +25,16 @@ export interface DetectionResponse {
     fps?: number;
     sentence?: string;
 }
+
+export type JobStatus = "pending" | "processing" | "done" | "error";
+
+export interface UploadJobResponse {
+    job_id: string;
+}
+
+export interface JobProgressResponse {
+    status: JobStatus;
+    progress: number;
+    result: DetectionResponse | null;
+    error: string | null;
+}

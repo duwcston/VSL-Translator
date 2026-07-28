@@ -19,8 +19,10 @@ export const useRealtimeDetection = ({ onError }: UseRealtimeDetectionProps) => 
     const [processedImage, setProcessedImage] = useState<string | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
     const lastDetections = useRef<Detection[]>([]);
+    const isAwaitingResponse = useRef(false);
 
     const handleDetectionResult = useCallback((data: unknown) => {
+        isAwaitingResponse.current = false;
         const result = data as RealtimeDetectionResult;
         if (result.error) {
             onError(result.error);
@@ -53,6 +55,7 @@ export const useRealtimeDetection = ({ onError }: UseRealtimeDetectionProps) => 
             websocketClient.onError((error) => {
                 console.error("WebSocket error:", error);
                 onError("Connection to detection server failed. Please try again.");
+                isAwaitingResponse.current = false;
                 setIsStreaming(false);
             });
             setIsStreaming(true);
@@ -70,6 +73,7 @@ export const useRealtimeDetection = ({ onError }: UseRealtimeDetectionProps) => 
         setProcessedImage(null);
         setDetections([]);
         lastDetections.current = [];
+        isAwaitingResponse.current = false;
     }, []);
 
     const sendFrame = useCallback((
@@ -79,6 +83,11 @@ export const useRealtimeDetection = ({ onError }: UseRealtimeDetectionProps) => 
         resizeFactor: number,
         inputSize: number
     ) => {
+        // Skip sending while a previous frame's response is still pending,
+        // so the client doesn't keep encoding/queueing frames the backend
+        // would just drop.
+        if (isAwaitingResponse.current) return;
+        isAwaitingResponse.current = true;
         websocketClient.sendFrame(
             frameData,
             Date.now(),
@@ -93,6 +102,7 @@ export const useRealtimeDetection = ({ onError }: UseRealtimeDetectionProps) => 
         detections,
         processedImage,
         isStreaming,
+        isAwaitingResponse,
         startDetection,
         stopDetection,
         sendFrame

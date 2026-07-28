@@ -56,7 +56,9 @@ export const useWebcam = () => {
 
                 // Draw the video frame to the canvas
                 context.drawImage(video, 0, 0, canvas.width, canvas.height); // Get the frame as a data URL
-                return canvas.toDataURL('image/jpeg', 1.0);
+                // Quality 1.0 produces near-lossless JPEGs (much larger payloads)
+                // for a frame that's only ever sent to the backend, never shown.
+                return canvas.toDataURL('image/jpeg', 0.8);
             }
         }
         return null;

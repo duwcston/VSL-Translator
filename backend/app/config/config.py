@@ -25,7 +25,7 @@ APP_TITLE = "ASL Detection Backend"
 APP_DESCRIPTION = "API for ASL Recognition System"
 APP_VERSION = "1.0.0"
 
-DEFAULT_MODEL_PATH = str(MODELS_DIR / "ASL.onnx")
+DEFAULT_MODEL_PATH = str(MODELS_DIR / "D.onnx")
 
 TEMP_DIR.mkdir(exist_ok=True)
 FONT_DIR.mkdir(exist_ok=True)

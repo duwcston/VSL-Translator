@@ -9,6 +9,8 @@ import { EUploadStatus } from "../../types/FileIntermediate";
 import useResultsApi from "../../api/resultsApi";
 import { useFileUpload } from "../../hooks/useFileUpload";
 
+const JOB_POLL_INTERVAL_MS = 400;
+
 export default function Uploader() {
   const {
     file,
@@ -19,7 +21,7 @@ export default function Uploader() {
     currentTime,
     currentFrameDetections,
     uploadProgress,
-    // processingProgress,
+    processingProgress,
     currentStage,
     inputRef,
     setStatus,
@@ -40,6 +42,16 @@ export default function Uploader() {
 
   const resultApi = useResultsApi();
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  // Invalidates any in-flight progress poll when a new upload starts, the
+  // user clears the file, or the component unmounts mid-poll.
+  const uploadTokenRef = React.useRef(0);
+
+  React.useEffect(() => {
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      uploadTokenRef.current++;
+    };
+  }, []);
 
   // Handle video time update
   const handleVideoTimeUpdate = () => {
@@ -47,40 +59,66 @@ export default function Uploader() {
       handleTimeUpdate(videoRef.current.currentTime);
     }
   };
+
+  async function pollJobProgress(jobId: string, token: number, filename: string) {
+    while (uploadTokenRef.current === token) {
+      const job = await resultApi.getJobProgress(jobId);
+      if (uploadTokenRef.current !== token) return;
+
+      setProcessingProgress(job.progress);
+
+      if (job.status === "done") {
+        setResults((prev) => ({ ...prev, [filename]: job.result! }));
+        setResultURL(resultApi.getResult());
+        setStatus(EUploadStatus.Success);
+        return;
+      }
+
+      if (job.status === "error") {
+        throw new Error(job.error ?? "Processing failed");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, JOB_POLL_INTERVAL_MS));
+    }
+  }
+
   async function handleFileUpload() {
     if (!file) return;
 
+    const token = ++uploadTokenRef.current;
+
     try {
-      // Stage 1: Upload
+      // Stage 1: Upload (real byte-level progress from the browser)
       setStatus(EUploadStatus.Uploading);
       setUploadProgress(0);
       setProcessingProgress(0);
       setCurrentStage("upload");
 
-      const response = await resultApi.uploadFile(file, (progress) => {
+      const { job_id } = await resultApi.uploadFile(file, (progress) => {
         setUploadProgress(progress);
       });
+      if (uploadTokenRef.current !== token) return;
 
-      // Stage 2: Processing
+      // Stage 2: Processing (real progress polled from the backend job)
       setStatus(EUploadStatus.Processing);
       setCurrentStage("processing");
       setUploadProgress(100);
 
-      const key = file.name;
-      setResults((prev) => ({ ...prev, [key]: response }));
-
-      setTimeout(() => {
-        setProcessingProgress(100);
-        setResultURL(resultApi.getResult());
-        setStatus(EUploadStatus.Success);
-      }, 1000);
+      await pollJobProgress(job_id, token, file.name);
     } catch (error) {
+      if (uploadTokenRef.current !== token) return;
       console.error(error);
       setStatus(EUploadStatus.Error);
       setUploadProgress(0);
       setProcessingProgress(0);
     }
   }
+
+  const handleClearAndAbort = () => {
+    uploadTokenRef.current++;
+    handleClear();
+  };
+
   return (
     <>
       <div className="space-y-6 p-4">
@@ -131,9 +169,16 @@ export default function Uploader() {
                 </p>
               </div>
             </div>
-            {currentStage === "upload" && (
+            {currentStage === "upload" ? (
               <ProgressBar
                 progress={uploadProgress}
+                variant="gradient"
+                label=""
+                subLabel=""
+              />
+            ) : (
+              <ProgressBar
+                progress={processingProgress}
                 variant="gradient"
                 label=""
                 subLabel=""
@@ -162,7 +207,7 @@ export default function Uploader() {
               onClick={handleClick}
               onFileChange={handleFileChange}
               onUpload={handleFileUpload}
-              onClear={handleClear}
+              onClear={handleClearAndAbort}
             />
           </motion.div>
 

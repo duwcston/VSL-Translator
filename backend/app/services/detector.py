@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import base64
 from time import time
-from typing import Dict, List, Tuple, Optional
+from typing import Callable, Dict, List, Tuple, Optional
 from ultralytics import YOLO
 
 from app.config.config import CONF_THRESHOLD, DEFAULT_MODEL_PATH
@@ -52,6 +52,36 @@ class SignLanguageDetector:
         annotated_image = self._draw_detections(image, detections, fps)
 
         return detections, annotated_image
+
+    def extract_detections(self, results) -> List[Dict]:
+        return self._extract_detections(results)
+
+    def extract_video_detections(
+        self,
+        results,
+        video_path: str,
+        on_progress: Optional[Callable[[int, int], None]] = None,
+    ) -> Tuple[List[Dict], float]:
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        cap.release()
+
+        frame_detections = []
+        for frame_number, result in enumerate(results):
+            detections = self._extract_detections([result])
+            frame_detections.append(
+                {
+                    "frame_number": frame_number,
+                    "timestamp": frame_number / fps,
+                    "detections": detections,
+                }
+            )
+
+            if on_progress:
+                on_progress(frame_number + 1, total_frames)
+
+        return frame_detections, fps
 
     def _extract_detections(self, results) -> List[Dict]:
         detections = []
@@ -125,38 +155,6 @@ class SignLanguageDetector:
             )
 
         return annotated_image
-
-    def process_video_frames(
-        self, video_path: str, max_frames: int = 1000
-    ) -> Tuple[List[Dict], float]:
-        cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            raise ValueError(f"Failed to open video file: {video_path}")
-
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        frame_detections = []
-        frame_number = 0
-
-        while True:
-            ret, frame = cap.read()
-            if not ret or frame_number >= max_frames:
-                break
-
-            timestamp = frame_number / fps
-            detections, _ = self.detect_from_image(frame)
-
-            frame_detections.append(
-                {
-                    "frame_number": frame_number,
-                    "timestamp": timestamp,
-                    "detections": detections,
-                }
-            )
-
-            frame_number += 1
-
-        cap.release()
-        return frame_detections, fps
 
     def process_frame_for_websocket(
         self, frame: np.ndarray, input_size: int = 320, return_image: bool = False

@@ -133,36 +133,42 @@ class RealtimeDetectionHandler:
 async def handle_websocket_detection(websocket: WebSocket):
     manager = WebSocketManager()
     handler = RealtimeDetectionHandler()
+    processing_lock = asyncio.Lock()
 
     await manager.connect(websocket)
 
     async def process_and_send(data_json: dict):
-        try:
-            if "image" not in data_json:
-                await websocket.send_json({"error": "No image data received"})
-                return
-
-            frame = await asyncio.get_running_loop().run_in_executor(
-                executor, handler.decode_frame, data_json["image"]
-            )
-            if frame is None:
-                await websocket.send_json({"error": "Invalid image data"})
-                return
-
-            response = await asyncio.get_running_loop().run_in_executor(
-                executor,
-                handler.detect_and_process,
-                frame,
-                data_json.get("return_image", False),
-                data_json.get("timestamp", None),
-            )
-
-            await websocket.send_json(response)
-        except Exception as e:
+        # Serializes processing/sends per connection: WebSocket.send is not
+        # safe to call concurrently, and this doubles as backpressure so a
+        # slow model doesn't let unbounded frames pile up in flight.
+        async with processing_lock:
             try:
-                await websocket.send_json({"error": f"Processing error: {str(e)}"})
-            except Exception:
-                print(f"WebSocket connection closed during error handling: {str(e)}")
+                if "image" not in data_json:
+                    await websocket.send_json({"error": "No image data received"})
+                    return
+
+                loop = asyncio.get_running_loop()
+                frame = await loop.run_in_executor(
+                    executor, handler.decode_frame, data_json["image"]
+                )
+                if frame is None:
+                    await websocket.send_json({"error": "Invalid image data"})
+                    return
+
+                response = await loop.run_in_executor(
+                    executor,
+                    handler.detect_and_process,
+                    frame,
+                    data_json.get("return_image", False),
+                    data_json.get("timestamp", None),
+                )
+
+                await websocket.send_json(response)
+            except Exception as e:
+                try:
+                    await websocket.send_json({"error": f"Processing error: {str(e)}"})
+                except Exception:
+                    print(f"WebSocket connection closed during error handling: {str(e)}")
 
     try:
         while True:
@@ -170,20 +176,19 @@ async def handle_websocket_detection(websocket: WebSocket):
 
             try:
                 data_json = json.loads(data)
-                asyncio.create_task(process_and_send(data_json))
             except json.JSONDecodeError:
                 try:
                     await websocket.send_json({"error": "Invalid JSON data"})
-                except:
+                    continue
+                except Exception:
                     break
-            except Exception as e:
-                try:
-                    await websocket.send_json({"error": f"Processing error: {str(e)}"})
-                except:
-                    print(
-                        f"WebSocket connection closed during error handling: {str(e)}"
-                    )
-                    break
+
+            if processing_lock.locked():
+                # A previous frame is still being processed: drop this one
+                # instead of queueing, so results stay close to real-time.
+                continue
+
+            asyncio.create_task(process_and_send(data_json))
 
     except WebSocketDisconnect:
         print("WebSocket client disconnected")

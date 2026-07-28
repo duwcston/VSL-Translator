@@ -1,5 +1,5 @@
 import useHttpClient from './httpClient'
-import { DetectionResponse } from '../types/DetectionResponse'
+import { JobProgressResponse, UploadJobResponse } from '../types/DetectionResponse'
 import { API_DETECTIONS_URL } from './constants'
 
 const url = import.meta.env.VITE_BACKEND_URL
@@ -13,7 +13,7 @@ const useResultsApi = () => {
   async function uploadFile(
     file: File,
     onProgress?: (progress: number) => void
-  ): Promise<DetectionResponse> {
+  ): Promise<UploadJobResponse> {
     const formData = new FormData()
     formData.append('file', file)
 
@@ -30,9 +30,14 @@ const useResultsApi = () => {
     })
   }
 
+  async function getJobProgress(jobId: string): Promise<JobProgressResponse> {
+    return await httpClient.httpGet(`${url}/${API_DETECTIONS_URL}/${jobId}/progress`)
+  }
+
   return {
     getResult,
     uploadFile,
+    getJobProgress,
   }
 }
 

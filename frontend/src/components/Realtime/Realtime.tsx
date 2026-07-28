@@ -32,6 +32,7 @@ function Realtime({ isActive = true }: RealtimeProps) {
     detections,
     processedImage,
     isStreaming,
+    isAwaitingResponse,
     startDetection,
     stopDetection,
     sendFrame,
@@ -41,7 +42,7 @@ function Realtime({ isActive = true }: RealtimeProps) {
 
   // Capture frame from video and send to the server
   const handleCaptureFrame = useCallback(() => {
-    if (!isStreaming) return;
+    if (!isStreaming || isAwaitingResponse.current) return;
 
     const frameData = captureFrame(videoRef, canvasRef);
     if (frameData) {
