@@ -1,85 +1,90 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState } from "react";
 import { Upload, Video } from "lucide-react";
 import UploadSection from "../../pages/UploadSection";
 import RealtimeSection from "../../pages/RealtimeSection";
 
+type TabId = "upload" | "realtime";
+
+const STORAGE_KEY = "activeTab";
+
+const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "upload", label: "Upload File", icon: <Upload className="h-4 w-4" /> },
+  {
+    id: "realtime",
+    label: "Real-time Detection",
+    icon: <Video className="h-4 w-4" />,
+  },
+];
+
+function readSavedTab(): TabId {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === "realtime"
+      ? "realtime"
+      : "upload";
+  } catch {
+    return "upload";
+  }
+}
+
 export default function Tabs() {
-  const [activeTab, setActiveTab] = useState(() => {
-    // Get saved tab from localStorage or default to 'upload'
-    return localStorage.getItem("activeTab") || "upload";
-  });
+  const [activeTab, setActiveTab] = useState<TabId>(readSavedTab);
 
-  // Save active tab to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem("activeTab", activeTab);
-  }, [activeTab]);
+  const selectTab = (id: TabId) => {
+    setActiveTab(id);
+    try {
+      localStorage.setItem(STORAGE_KEY, id);
+    } catch {
+      // Storage unavailable (e.g. private mode): the tab just isn't remembered.
+    }
+  };
 
-  const tabs = [
-    {
-      id: "upload",
-      label: "Upload File",
-      icon: <Upload className="w-4 h-4" />,
-      description: "Upload and analyze video files",
-    },
-    {
-      id: "realtime",
-      label: "Real-time Detection",
-      icon: <Video className="w-4 h-4" />,
-      description: "Live camera sign detection",
-    },
-  ];
+  const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
+    <div className="mx-auto w-full max-w-6xl">
       {/* Tab Navigation */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-2 border border-white/20 mb-8">
-        <div className="flex space-x-2">
-          {tabs.map((tab) => (
-            <motion.button
-              key={tab.id}
-              className={`
-                                relative flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-medium transition-all duration-300
-                                ${
-                                  activeTab === tab.id
-                                    ? "text-white shadow-lg"
-                                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
-                                }
-                            `}
-              onClick={() => setActiveTab(tab.id)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-2">
-                {tab.icon}
-                <span className="font-semibold">{tab.label}</span>
-              </span>
-            </motion.button>
-          ))}
-        </div>
+      <div
+        role="tablist"
+        className="relative mb-6 grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm"
+      >
+        {/* Sliding indicator: one transform transition instead of re-mounting */}
+        <div
+          aria-hidden
+          className="absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-0.375rem)] rounded-lg bg-blue-600 transition-transform duration-300 ease-out"
+          style={{ transform: `translateX(${activeIndex * 100}%)` }}
+        />
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={`relative z-10 flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors duration-300 sm:text-base ${
+              activeTab === tab.id
+                ? "text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+            onClick={() => selectTab(tab.id)}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Tab Content */}
-      <motion.div
-        key={activeTab}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden"
-      >
-        {activeTab === "upload" ? (
+      {/* Tab Content. The upload tab stays mounted (just hidden) so switching
+          tabs keeps its file and results; the realtime tab mounts only while
+          active so the camera is released when leaving it. */}
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div hidden={activeTab !== "upload"} className="animate-fade-in">
           <UploadSection />
-        ) : (
-          <RealtimeSection isActive={activeTab === "realtime"} />
+        </div>
+        {activeTab === "realtime" && (
+          <div className="animate-fade-in">
+            <RealtimeSection />
+          </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

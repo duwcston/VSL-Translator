@@ -1,6 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
-import { PlayCircle, Loader, CheckCircle } from "lucide-react";
+import { PlayCircle, Loader2, CheckCircle } from "lucide-react";
 import { EUploadStatus } from "../../types/FileIntermediate";
 import { DetectionResponse } from "../../types/DetectionResponse";
 
@@ -19,130 +18,77 @@ function MediaDisplay({
   videoRef,
   onTimeUpdate,
 }: MediaDisplayProps) {
+  const isBusy =
+    status === EUploadStatus.Uploading || status === EUploadStatus.Processing;
+  const showResult = status === EUploadStatus.Success && resultURL;
+
   return (
-    <motion.div
-      className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden min-h-[400px] flex justify-center items-center"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      {status === EUploadStatus.Idle ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-4 p-8"
-        >
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">
-            <PlayCircle className="w-10 h-10 text-blue-600" />
+    <div className="flex min-h-[360px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+      {showResult ? (
+        <div key={resultURL} className="flex flex-1 animate-fade-in flex-col">
+          <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <span className="font-semibold text-slate-800">
+              Processing Complete
+            </span>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-700">
-              Ready for Detection
-            </h3>
-            <p className="text-gray-500 text-sm mt-2">
-              Upload a file to see detection results
-            </p>
-          </div>
-        </motion.div>
-      ) : status === EUploadStatus.Uploading ||
-        status === EUploadStatus.Processing ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center justify-center space-y-6 p-8"
-        >
-          <motion.div
-            animate={{
-              rotate: 360,
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              rotate: { duration: 2, repeat: Infinity, ease: "linear" },
-              scale: { duration: 1, repeat: Infinity },
-            }}
-            className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg"
-          >
-            <Loader className="w-8 h-8 text-white" />
-          </motion.div>
-          <div className="text-center space-y-2">
-            <h3 className="text-xl font-semibold text-gray-800">
-              {status === EUploadStatus.Uploading
-                ? "Uploading File"
-                : "Processing"}
-            </h3>
-            <p className="text-gray-600">
-              {status === EUploadStatus.Uploading
-                ? "Please wait while your file is being uploaded..."
-                : "Running sign language detection on your file..."}
-            </p>
-            <div className="flex items-center justify-center space-x-2 mt-4">
-              <div className="flex space-x-1">
-                <motion.div
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
-                  className="w-2 h-2 bg-blue-500 rounded-full"
-                />
-                <motion.div
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
-                  className="w-2 h-2 bg-blue-500 rounded-full"
-                />
-                <motion.div
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
-                  className="w-2 h-2 bg-blue-500 rounded-full"
-                />
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      ) : status === EUploadStatus.Success && resultURL ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="w-full h-full flex flex-col"
-        >
-          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-blue-50 border-b border-green-200">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              <span className="font-semibold text-green-700">
-                Processing Complete
-              </span>
-            </div>
-          </div>
-          <div className="flex-1 p-4 flex items-center justify-center">
+          <div className="flex flex-1 items-center justify-center bg-slate-900 p-2">
             {Object.values(results)[0]?.type === "image" ? (
-              <motion.img
-                key={resultURL}
+              <img
                 src={resultURL}
                 alt="Detection result"
-                className="max-h-full max-w-full object-contain rounded-lg shadow-lg"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
+                decoding="async"
+                className="max-h-[480px] max-w-full rounded object-contain"
               />
             ) : (
-              <motion.video
+              <video
                 ref={videoRef}
-                key={resultURL}
+                src={resultURL}
                 controls
                 autoPlay
                 muted
-                className="w-full max-h-full rounded-lg shadow-lg"
+                playsInline
+                preload="auto"
+                className="max-h-[480px] w-full rounded"
                 onTimeUpdate={onTimeUpdate}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
+                onSeeked={onTimeUpdate}
               >
-                <source src={resultURL} type="video/mp4" />
                 Your browser does not support the video tag.
-              </motion.video>
+              </video>
             )}
           </div>
-        </motion.div>
-      ) : null}
-    </motion.div>
+        </div>
+      ) : (
+        <div
+          key={isBusy ? "busy" : "idle"}
+          className="flex flex-1 animate-fade-in flex-col items-center justify-center gap-4 p-8 text-center"
+        >
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+            {isBusy ? (
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            ) : (
+              <PlayCircle className="h-8 w-8 text-blue-600" />
+            )}
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-slate-800">
+              {status === EUploadStatus.Uploading
+                ? "Uploading File"
+                : status === EUploadStatus.Processing
+                  ? "Processing"
+                  : "Ready for Detection"}
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              {status === EUploadStatus.Uploading
+                ? "Please wait while your file is being uploaded..."
+                : status === EUploadStatus.Processing
+                  ? "Running sign language detection on your file..."
+                  : "Upload a file to see detection results"}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

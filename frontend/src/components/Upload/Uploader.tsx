@@ -1,6 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
-import { AlertCircle, Loader } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import UploadSection from "./UploadSection";
 import MediaDisplay from "./MediaDisplay";
 import DetectionDisplay from "./DetectionDisplay";
@@ -11,11 +10,25 @@ import { useFileUpload } from "../../hooks/useFileUpload";
 
 const JOB_POLL_INTERVAL_MS = 400;
 
+function getErrorMessage(error: unknown): string {
+  if (error && typeof error === "object") {
+    // FastAPI errors arrive as { detail: "..." } (see httpClient).
+    if ("detail" in error && typeof error.detail === "string") {
+      return error.detail;
+    }
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+  }
+  return "Error uploading file. Please make sure the backend is running and try again.";
+}
+
 export default function Uploader() {
   const {
     file,
     isDragging,
     status,
+    errorMessage,
     results,
     resultURL,
     currentTime,
@@ -25,6 +38,7 @@ export default function Uploader() {
     currentStage,
     inputRef,
     setStatus,
+    setErrorMessage,
     setResults,
     setResultURL,
     setUploadProgress,
@@ -68,7 +82,7 @@ export default function Uploader() {
       setProcessingProgress(job.progress);
 
       if (job.status === "done") {
-        setResults((prev) => ({ ...prev, [filename]: job.result! }));
+        setResults({ [filename]: job.result! });
         setResultURL(resultApi.getResult());
         setStatus(EUploadStatus.Success);
         return;
@@ -90,6 +104,9 @@ export default function Uploader() {
     try {
       // Stage 1: Upload (real byte-level progress from the browser)
       setStatus(EUploadStatus.Uploading);
+      setErrorMessage(null);
+      setResults({});
+      setResultURL(null);
       setUploadProgress(0);
       setProcessingProgress(0);
       setCurrentStage("upload");
@@ -109,6 +126,7 @@ export default function Uploader() {
       if (uploadTokenRef.current !== token) return;
       console.error(error);
       setStatus(EUploadStatus.Error);
+      setErrorMessage(getErrorMessage(error));
       setUploadProgress(0);
       setProcessingProgress(0);
     }
@@ -119,120 +137,83 @@ export default function Uploader() {
     handleClear();
   };
 
+  const isBusy =
+    status === EUploadStatus.Uploading || status === EUploadStatus.Processing;
+
   return (
-    <>
-      <div className="space-y-6 p-4">
-        {/* Error State */}
-        {status === EUploadStatus.Error && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg shadow-sm"
-          >
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-400 mr-3" />
-              <div>
-                <p className="text-red-800 font-medium">Upload Error</p>
-                <p className="text-red-600 text-sm">
-                  Error uploading file. Please try again.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-        {/* Processing State */}
-        {(status === EUploadStatus.Uploading ||
-          status === EUploadStatus.Processing) && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6 shadow-lg"
-          >
-            <div className="flex items-center">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="mr-3"
-              >
-                <Loader className="h-5 w-5 text-blue-600" />
-              </motion.div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {currentStage === "upload"
-                    ? "Uploading File"
-                    : "Processing & Detecting Signs"}
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  {currentStage === "upload"
-                    ? "Uploading file to server..."
-                    : "Running ASL detection on your file..."}
-                </p>
-              </div>
-            </div>
-            {currentStage === "upload" ? (
-              <ProgressBar
-                progress={uploadProgress}
-                variant="gradient"
-                label=""
-                subLabel=""
-              />
-            ) : (
-              <ProgressBar
-                progress={processingProgress}
-                variant="gradient"
-                label=""
-                subLabel=""
-              />
-            )}
-          </motion.div>
-        )}
+    <div className="space-y-6 p-2 sm:p-4">
+      {/* Error State */}
+      {status === EUploadStatus.Error && (
+        <div
+          role="alert"
+          className="flex animate-fade-in items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4"
+        >
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+          <div>
+            <p className="font-medium text-red-800">Upload Error</p>
+            <p className="text-sm text-red-600">{errorMessage}</p>
+          </div>
+        </div>
+      )}
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-3"
-          >
-            <UploadSection
-              file={file}
-              isDragging={isDragging}
-              status={status}
-              inputRef={inputRef}
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={handleClick}
-              onFileChange={handleFileChange}
-              onUpload={handleFileUpload}
-              onClear={handleClearAndAbort}
-            />
-          </motion.div>
+      {/* Progress State */}
+      {isBusy && (
+        <div className="animate-fade-in space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div>
+            <h3 className="font-semibold text-slate-800">
+              {currentStage === "upload"
+                ? "Uploading File"
+                : "Processing & Detecting Signs"}
+            </h3>
+            <p className="text-sm text-slate-500">
+              {currentStage === "upload"
+                ? "Uploading file to server..."
+                : "Running ASL detection on your file..."}
+            </p>
+          </div>
+          <ProgressBar
+            progress={
+              currentStage === "upload" ? uploadProgress : processingProgress
+            }
+          />
+        </div>
+      )}
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-6"
-          >
-            <MediaDisplay
-              status={status}
-              resultURL={resultURL}
-              results={results}
-              videoRef={videoRef}
-              onTimeUpdate={handleVideoTimeUpdate}
-            />
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div>
+          <UploadSection
+            file={file}
+            isDragging={isDragging}
+            status={status}
+            inputRef={inputRef}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={handleClick}
+            onFileChange={handleFileChange}
+            onUpload={handleFileUpload}
+            onClear={handleClearAndAbort}
+          />
+        </div>
 
-            <DetectionDisplay
-              results={results}
-              currentTime={currentTime}
-              currentFrameDetections={currentFrameDetections}
-            />
-          </motion.div>
+        <div className="space-y-6">
+          <MediaDisplay
+            status={status}
+            resultURL={resultURL}
+            results={results}
+            videoRef={videoRef}
+            onTimeUpdate={handleVideoTimeUpdate}
+          />
+
+          <DetectionDisplay
+            results={results}
+            currentTime={currentTime}
+            currentFrameDetections={currentFrameDetections}
+          />
         </div>
       </div>
-    </>
+    </div>
   );
 }

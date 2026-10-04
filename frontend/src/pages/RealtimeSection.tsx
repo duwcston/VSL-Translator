@@ -1,28 +1,18 @@
-import { motion } from "framer-motion";
 import Realtime from "../components/Realtime/Realtime";
 
-interface RealtimeSectionProps {
-  isActive?: boolean;
-}
-
-function RealtimeSection({ isActive = true }: RealtimeSectionProps) {
+function RealtimeSection() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.6 }}
-      className="p-4"
-    >
+    <div className="p-4">
       <div className="mb-4 text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+        <h2 className="mb-1 text-2xl font-bold text-slate-900">
           Real-time Detection
         </h2>
-        <p className="text-gray-600">
+        <p className="text-slate-500">
           Use your camera for live sign language detection
         </p>
       </div>
-      <Realtime isActive={isActive} />
-    </motion.div>
+      <Realtime />
+    </div>
   );
 }
 

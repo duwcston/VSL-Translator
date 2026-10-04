@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { FileText, HardDrive, Tag } from "lucide-react";
 
 interface FileInformationProps {
@@ -17,50 +16,36 @@ function FileInformation({ file }: FileInformationProps) {
   };
 
   const fileInfo = [
-    { icon: <FileText className="w-4 h-4" />, label: "Name", value: file.name },
+    { icon: <FileText className="h-4 w-4" />, label: "Name", value: file.name },
     {
-      icon: <HardDrive className="w-4 h-4" />,
+      icon: <HardDrive className="h-4 w-4" />,
       label: "Size",
       value: convertFileSize(file.size),
     },
     {
-      icon: <Tag className="w-4 h-4" />,
+      icon: <Tag className="h-4 w-4" />,
       label: "Type",
       value: file.type || "Unknown",
     },
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100"
-    >
-      <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-        <FileText className="w-5 h-5 text-blue-600" />
-        File Information
-      </h3>
+    <div className="animate-fade-in rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <h3 className="mb-3 font-semibold text-slate-800">File Information</h3>
       <div className="space-y-2">
-        {fileInfo.map((info, index) => (
-          <motion.div
-            key={info.label}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="flex items-center space-x-3 text-sm"
-          >
-            <div className="text-gray-500">{info.icon}</div>
-            <span className="font-medium text-gray-600 min-w-12">
+        {fileInfo.map((info) => (
+          <div key={info.label} className="flex items-center gap-3 text-sm">
+            <div className="text-slate-400">{info.icon}</div>
+            <span className="min-w-12 font-medium text-slate-500">
               {info.label}:
             </span>
-            <span className="text-gray-800 truncate flex-1" title={info.value}>
+            <span className="flex-1 truncate text-slate-800" title={info.value}>
               {info.value}
             </span>
-          </motion.div>
+          </div>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
