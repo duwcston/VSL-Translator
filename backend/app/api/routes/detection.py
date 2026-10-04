@@ -1,6 +1,9 @@
 import asyncio
+import mimetypes
+import shutil
+import uuid
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 import cv2
 from pathlib import Path
@@ -12,6 +15,7 @@ from app.config.config import (
     TEMP_DIR,
     PREDICTION_DIR,
     CONF_THRESHOLD,
+    CHUNK_SIZE,
 )
 from app.utils.file_utils import (
     is_valid_file,
@@ -22,10 +26,8 @@ from app.utils.file_utils import (
 )
 from app.services.detector import get_detector
 from app.services.job_manager import job_manager
-from app.services.video_processor import (
-    convert_avi_to_mp4,
-    stream_video_file,
-)
+from app.services.video_processor import convert_avi_to_mp4
+
 # from app.services.sentence_generator import generate_sentence_from_detections
 
 router = APIRouter(tags=["Detection"])
@@ -34,16 +36,32 @@ router = APIRouter(tags=["Detection"])
 # progress; the remainder covers the avi->mp4 conversion that follows it.
 VIDEO_DETECTION_PROGRESS_SHARE = 90
 
+# Where Ultralytics writes annotated output; exist_ok stops it from creating
+# predict2, predict3, ... so the result endpoint always reads the same folder.
+SAVE_ARGS = {
+    "save": True,
+    "project": str(PREDICTION_DIR.parent),
+    "name": PREDICTION_DIR.name,
+    "exist_ok": True,
+}
+
 
 class DetectionHandler:
     def __init__(self):
         self.detector = get_detector()
 
     async def save_upload_file(self, file: UploadFile) -> Path:
-        temp_file = TEMP_DIR / f"temp_{file.filename}"
+        # Unique, path-free name: avoids collisions and "../" in client filenames.
+        suffix = Path(file.filename).suffix.lower()
+        temp_file = TEMP_DIR / f"temp_{uuid.uuid4().hex}{suffix}"
+
+        def _write():
+            # Stream to disk in chunks instead of loading the whole upload into memory.
+            with temp_file.open("wb") as out:
+                shutil.copyfileobj(file.file, out, CHUNK_SIZE)
+
         try:
-            contents = await file.read()
-            await run_in_threadpool(temp_file.write_bytes, contents)
+            await run_in_threadpool(_write)
             return temp_file
         except Exception as e:
             raise HTTPException(
@@ -66,13 +84,12 @@ class DetectionHandler:
     def _run_video_detection(self, temp_path: Path, job_id: str):
         self._validate_video_file(temp_path)
 
-        results = self.detector.model.predict(
-            source=temp_path,
-            save=True,
+        results = self.detector.predict(
+            str(temp_path),
             conf=CONF_THRESHOLD,
-            verbose=False,
             max_det=1,
             stream=True,
+            **SAVE_ARGS,
         )
 
         def on_progress(done: int, total: int):
@@ -111,8 +128,8 @@ class DetectionHandler:
                 detail="Failed to read image, it may be corrupted",
             )
 
-        results = self.detector.model.predict(
-            source=image, save=True, conf=CONF_THRESHOLD, verbose=False, max_det=1
+        results = self.detector.predict(
+            image, conf=CONF_THRESHOLD, max_det=1, **SAVE_ARGS
         )
         detections = self.detector.extract_detections(results)
 
@@ -220,16 +237,12 @@ async def get_prediction_result():
             status_code=status.HTTP_404_NOT_FOUND, detail="Prediction file not found"
         )
 
-    extension = Path(file_path.name).suffix.lower()
-    if extension in ALLOWED_VIDEO_EXTENSIONS:
-        return StreamingResponse(
-            content=stream_video_file(file_path),
-            media_type="video/mp4",
-            headers={"Content-Disposition": f"inline; filename={file_path.name}"},
-        )
-    else:
-        return FileResponse(
-            path=file_path,
-            media_type="image/jpeg",
-            headers={"Content-Disposition": f"inline; filename={file_path.name}"},
-        )
+    # FileResponse honours HTTP Range requests, which browsers need to seek
+    # within the result video.
+    media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        content_disposition_type="inline",
+        filename=file_path.name,
+    )

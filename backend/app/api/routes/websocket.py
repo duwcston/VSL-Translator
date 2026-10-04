@@ -4,13 +4,22 @@ import cv2
 import numpy as np
 import base64
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from fastapi import WebSocket, WebSocketDisconnect
 from PIL import Image, ImageDraw, ImageFont
 
-from app.config.config import FONT_PATH, WEBSOCKET_CONF_THRESHOLD
+from app.config.config import FONT_PATH, REALTIME_INPUT_SIZE, WEBSOCKET_CONF_THRESHOLD
 from app.services.detector import get_detector
 
 executor = ThreadPoolExecutor(max_workers=4)
+
+
+@lru_cache(maxsize=1)
+def _label_font():
+    # Loading a TrueType font from disk is slow; do it once, not per frame.
+    if not FONT_PATH.exists():
+        return None
+    return ImageFont.truetype(str(FONT_PATH), 16)
 
 
 class WebSocketManager:
@@ -29,56 +38,33 @@ class WebSocketManager:
 class RealtimeDetectionHandler:
     def __init__(self):
         self.detector = get_detector()
-        self.frame_count = 0
-        self.skip_frames = 0
-        self.resize_factor = 1.0
-        self.input_size = 320
 
     def decode_frame(self, image_data: str) -> np.ndarray:
-        img_data = base64.b64decode(image_data.split(",")[1])
+        # Accept both a data URL ("data:image/jpeg;base64,...") and bare base64.
+        img_data = base64.b64decode(image_data.split(",")[-1])
         img_array = np.frombuffer(img_data, dtype=np.uint8)
-        frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-
-        if frame is not None and self.resize_factor != 1.0:
-            h, w = frame.shape[:2]
-            new_h, new_w = int(h * self.resize_factor), int(w * self.resize_factor)
-            frame = cv2.resize(frame, (new_w, new_h))
-
-        return frame
+        return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
 
     def detect_and_process(
         self, frame: np.ndarray, return_image: bool = False, timestamp=None
     ) -> dict:
-        results = self.detector.model.predict(
-            source=frame,
+        results = self.detector.predict(
+            frame,
             conf=WEBSOCKET_CONF_THRESHOLD,
-            verbose=False,
-            imgsz=self.input_size,
+            imgsz=REALTIME_INPUT_SIZE,
             max_det=1,
         )
+        detections = self.detector._extract_detections(
+            results, conf_threshold=WEBSOCKET_CONF_THRESHOLD
+        )
 
-        detections = []
-        if results and results[0].boxes:
-            for box in results[0].boxes:
-                class_id = int(box.cls[0])
-                class_name = self.detector.model.names[class_id]
-                confidence = float(box.conf[0])
-
-                if confidence >= WEBSOCKET_CONF_THRESHOLD:
-                    coords = box.xyxy[0].tolist()
-
-                    if self.resize_factor != 1.0:
-                        coords = [c / self.resize_factor for c in coords]
-
-                    detections.append(
-                        {
-                            "class_name": class_name,
-                            "confidence": confidence,
-                            "bbox": coords,
-                        }
-                    )
-
-        response = {"timestamp": timestamp, "detections": detections}
+        h, w = frame.shape[:2]
+        # Frame size lets clients map bbox coordinates onto their own display.
+        response = {
+            "timestamp": timestamp,
+            "detections": detections,
+            "frame_size": [w, h],
+        }
 
         if return_image:
             annotated_frame = self._add_annotations(frame, detections)
@@ -91,32 +77,31 @@ class RealtimeDetectionHandler:
         return response
 
     def _add_annotations(self, frame: np.ndarray, detections: list) -> np.ndarray:
-        if self.resize_factor != 1.0:
-            h, w = frame.shape[:2]
-            frame = cv2.resize(
-                frame, (int(w / self.resize_factor), int(h / self.resize_factor))
-            )
-
         for det in detections:
             x1, y1, x2, y2 = map(int, det["bbox"])
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
             label = f"{det['class_name']}: {det['confidence']:.2f}"
-
-            if FONT_PATH.exists():
-                frame = self._draw_text_with_font(frame, label, (x1, y1))
+            frame = self._draw_text_with_font(frame, label, (x1, y1))
 
         return frame
 
     def _draw_text_with_font(
         self, frame: np.ndarray, text: str, position: tuple
     ) -> np.ndarray:
+        font = _label_font()
+        if font is None:
+            x1, y1 = position
+            cv2.putText(
+                frame, text, (x1, max(y1 - 5, 12)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA,
+            )  # fmt: skip
+            return frame
+
         try:
             x1, y1 = position
             pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             draw = ImageDraw.Draw(pil_img)
 
-            font_size = 16
-            font = ImageFont.truetype(str(FONT_PATH), font_size)
             text_width, text_height = draw.textbbox((0, 0), text, font=font)[2:]
 
             draw.rectangle(
@@ -168,7 +153,9 @@ async def handle_websocket_detection(websocket: WebSocket):
                 try:
                     await websocket.send_json({"error": f"Processing error: {str(e)}"})
                 except Exception:
-                    print(f"WebSocket connection closed during error handling: {str(e)}")
+                    print(
+                        f"WebSocket connection closed during error handling: {str(e)}"
+                    )
 
     try:
         while True:

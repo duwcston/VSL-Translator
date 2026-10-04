@@ -8,7 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 TEMP_DIR = BASE_DIR / "temp_files"
 FONT_DIR = BASE_DIR / "fonts"
 FONT_PATH = FONT_DIR / "arial.ttf"
-PREDICTION_DIR = Path("runs/detect/predict") or Path("runs/detect/predict2")
+# Pinned (with exist_ok=True at predict time) so Ultralytics never writes to
+# predict2/predict3/... and the result endpoint always knows where to look.
+PREDICTION_DIR = BASE_DIR / "runs" / "detect" / "predict"
 MODELS_DIR = BASE_DIR / "models"
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
@@ -17,6 +19,8 @@ ALLOWED_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS.union(ALLOWED_VIDEO_EXTENSIONS)
 
 CONF_THRESHOLD = 0.76
 WEBSOCKET_CONF_THRESHOLD = 0.7
+# The model was trained/exported at 320x320; larger inputs only add latency.
+REALTIME_INPUT_SIZE = 320
 CHUNK_SIZE = 1024 * 1024
 
 CORS_ORIGINS = ["http://localhost:5173"]
@@ -25,7 +29,7 @@ APP_TITLE = "ASL Detection Backend"
 APP_DESCRIPTION = "API for ASL Recognition System"
 APP_VERSION = "1.0.0"
 
-DEFAULT_MODEL_PATH = str(MODELS_DIR / "D.onnx")
+DEFAULT_MODEL_PATH = str(MODELS_DIR / "ASL_A.onnx")
 
 TEMP_DIR.mkdir(exist_ok=True)
 FONT_DIR.mkdir(exist_ok=True)
