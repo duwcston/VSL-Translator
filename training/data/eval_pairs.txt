@@ -1,0 +1,106 @@
+# Hand-written evaluation pairs: detector labels (comma separated) | reference sentence(s) separated by "||"
+# Split into dev.jsonl / test.jsonl by build_dataset.py. Edit this file, then re-run the script.
+Your, Name, What | What is your name? || What's your name?
+What, Your, Name | What is your name?
+Your, Name | What is your name? || Your name?
+Hello, Your, Name, What | Hello, what is your name?
+You, Deaf | Are you deaf? || You are deaf.
+Deaf, You | Are you deaf?
+I, Deaf | I am deaf.
+Yes, I, Deaf | Yes, I am deaf.
+No, I, Deaf | No, I am not deaf.
+Hello, I, Deaf | Hello, I am deaf.
+Hello, You, Deaf | Hello, are you deaf?
+I, Deaf, You, Deaf | I am deaf. Are you deaf? || I am deaf, are you deaf?
+Doctor, Deaf | The doctor is deaf.
+My, Doctor, Deaf | My doctor is deaf.
+Your, Doctor, Deaf | Is your doctor deaf?
+I, Thirsty | I am thirsty.
+You, Thirsty | Are you thirsty?
+Yes, I, Thirsty | Yes, I am thirsty.
+No, I, Thirsty | No, I am not thirsty.
+Doctor, Thirsty | The doctor is thirsty.
+I, Thirsty, Drink | I am thirsty, I want to drink. || I am thirsty and want a drink.
+I, Pain | I am in pain.
+You, Pain | Are you in pain? || Do you have pain?
+Yes, Pain | Yes, it hurts. || Yes, I am in pain.
+No, Pain | No pain. || There is no pain.
+Where, Pain | Where is the pain? || Where does it hurt?
+Pain, Where | Where is the pain? || Where does it hurt?
+Your, Pain, Where | Where is your pain? || Where does it hurt?
+How, Your, Pain | How is your pain?
+Hello, How, Your, Pain | Hello, how is your pain?
+I, Pain, Help | I am in pain, help me. || I am in pain, please help.
+Help, Pain | Help, it hurts. || Help, I am in pain.
+Help | Help! || Help.
+Help, I | Help me.
+Help, You | Can I help you? || I will help you.
+I, Help, You | I will help you. || I help you.
+You, Help, I | Can you help me? || You help me.
+How, Help | How can I help? || How can I help you?
+Help, Where | Where is help? || Where can I get help?
+Help, Doctor | Help, I need a doctor. || Help, call a doctor.
+Thank you, Help | Thank you for the help. || Thank you for helping.
+Doctor, Help, You | The doctor will help you. || The doctor helps you.
+Call, Doctor | Call a doctor. || Call the doctor.
+I, Call, Doctor | I will call the doctor. || I am calling the doctor.
+You, Call, Doctor | Did you call the doctor? || Call the doctor.
+Yes, Call, Doctor | Yes, call the doctor.
+How, Call, Doctor | How do I call the doctor?
+Doctor, Call, You | The doctor will call you.
+Call, I | Call me.
+I, Call, You | I will call you. || I call you.
+You, Call, I | Call me. || You call me.
+Call, Help | Call for help.
+I, Doctor | I am a doctor.
+You, Doctor | Are you a doctor?
+Yes, I, Doctor | Yes, I am a doctor.
+No, I, Doctor | No, I am not a doctor.
+Hello, Doctor | Hello, doctor.
+Doctor, Where | Where is the doctor?
+Where, My, Doctor | Where is my doctor?
+Your, Doctor, Where | Where is your doctor?
+My, Doctor | My doctor.
+Thank you, Doctor | Thank you, doctor.
+My, House, Where | Where is my house?
+Your, House, Where | Where is your house? || Where do you live?
+Where, Your, House | Where is your house? || Where do you live?
+House, Where | Where is the house?
+Where, House | Where is the house?
+I, House | I am at home. || I am in the house.
+You, House | Are you at home?
+My, House | My house.
+Your, House | Your house.
+Where, You | Where are you?
+How, You | How are you?
+Hello, How, You | Hello, how are you?
+I, Eat | I am eating. || I eat.
+You, Eat | Are you eating? || Do you want to eat?
+Eat, You | Do you want to eat? || Are you eating?
+You, Eat, What | What are you eating? || What do you eat?
+What, You, Eat | What are you eating? || What do you eat?
+Doctor, Eat | The doctor is eating.
+Where, Eat | Where can I eat? || Where do we eat?
+No, Eat | Do not eat. || No eating.
+Yes, Eat | Yes, eat.
+I, Drink | I am drinking.
+You, Drink, What | What are you drinking? || What do you want to drink?
+What, You, Drink | What are you drinking? || What do you drink?
+What, Drink | What drink? || What do you want to drink?
+Drink, Where | Where is the drink? || Where can I get a drink?
+Drink, You | Do you want a drink? || Drink?
+No, Drink | Do not drink. || No drinks.
+Yes, Drink | Yes, drink.
+Eat, Drink | Eat and drink.
+I, Eat, Drink | I eat and drink.
+You, Eat, Drink | Are you eating and drinking?
+Thank you | Thank you.
+Yes, Thank you | Yes, thank you.
+No, Thank you | No, thank you.
+Hello | Hello.
+Hello, Thank you | Hello, thank you.
+Yes | Yes.
+No | No.
+I love you | I love you.
+Yes, I love you | Yes, I love you.
+I love you, Thank you | I love you, thank you.

@@ -1,8 +1,8 @@
 # ASL Translator — American Sign Language Detection
 
 A web application that detects and recognises American Sign Language (ASL) signs in images, videos and a live
-webcam feed using a YOLO11 detection model. A FastAPI backend runs the model; a React + TypeScript frontend provides
-file upload and real-time detection.
+webcam feed using a YOLO11 detection model, and turns the signs in a video into an English sentence. A FastAPI
+backend runs the models; a React + TypeScript frontend provides file upload and real-time detection.
 
 **Thesis Report**: [Sign Language Translation Model](./ITCSIU21112_NguyenDucToan.pdf)
 
@@ -22,6 +22,10 @@ file upload and real-time detection.
   from the backend job
 - **Frame-synced video results**: the detection panel follows the video playhead frame by frame; the annotated
   result video supports seeking
+- **Sign sequence for videos**: per-frame detections are merged into an ordered list of signs (flickers and
+  very short detections removed); click a sign to jump to it in the video
+- **Sentence translation for videos**: a fine-tuned T5 model turns the sign sequence into English, adding the
+  missing words and word order (`Your, Name, What` → "What is your name?"); see [training/](training/README.md)
 - **Real-time detection** over WebSocket with client-side bounding-box overlay, live FPS and latency readout
 - **22 supported signs**: Call, Deaf, Doctor, Drink, Eat, Hello, Help, House, How, I, I love you, My, Name, No,
   Pain, Thank you, Thirsty, What, Where, Yes, You, Your
@@ -34,12 +38,15 @@ VSL-Detection/
 │   ├── app/
 │   │   ├── api/routes/       # REST (detection, system) and WebSocket routes
 │   │   ├── config/           # Paths, thresholds, CORS, model selection
-│   │   ├── services/         # Detector, job manager, video conversion
+│   │   ├── services/         # Detector, job manager, video conversion,
+│   │   │                     # sign segmentation, sentence generation
 │   │   └── utils/            # File helpers
 │   ├── fonts/                # Font used for labels on annotated frames
-│   ├── models/               # YOLO model files
+│   ├── models/               # YOLO model files and gloss2text/ (sentence model)
 │   ├── requirements.txt      # Python dependencies
 │   └── run.py                # Application entry point
+│
+├── training/                 # Sentence model: datasets, Colab notebook, evaluation
 │
 └── frontend/                 # React + TypeScript frontend
     ├── src/
@@ -89,7 +96,11 @@ git checkout ASL
 4. Make sure the model file exists at `backend/models/` (change `DEFAULT_MODEL_PATH` in
    `app/config/config.py` to use another model).
 
-5. Run the FastAPI server:
+5. Optional: install the sentence model in `backend/models/gloss2text/` (train it with
+   `training/train_gloss2text.ipynb`, see [training/README.md](training/README.md)). Without it, videos show the
+   sign sequence but no translated sentence.
+
+6. Run the FastAPI server:
 
     ```bash
     python run.py
@@ -140,6 +151,10 @@ default). ![Client Display](frontend/public/UI.jpg)
 | GET    | `/v1/detections/result`           | Annotated image or MP4 video of the latest job (supports HTTP Range requests) |
 | WS     | `/v1/detections/stream`           | Real-time detection on webcam frames                                       |
 
+For videos, the job `result` contains per-frame `detections`, `fps`, the merged sign sequence `glosses`
+(`label`, `start`/`end` in seconds, mean `confidence`) and the generated `sentence` (`null` when no sentence
+model is installed).
+
 **WebSocket protocol** — send one JSON message per frame and wait for its reply before sending the next:
 
 ```json
@@ -169,6 +184,8 @@ still being processed are dropped so results stay real-time.
     - Videos are transcoded to H.264 MP4 with ffmpeg for in-browser playback
     - The annotated result is shown with the detected signs and their confidence; for videos, the list follows
       the current frame
+    - For videos, consecutive detections are merged into a sign sequence (signs under 0.3 s are dropped, gaps
+      up to 0.25 s are bridged), and the sentence model translates it into an English sentence
 
 2. **Real-time Detection Mode**
     - The webcam starts when the tab is opened and stops when leaving it
@@ -207,6 +224,7 @@ still being processed are dropped so results stay real-time.
 - Ultralytics YOLO11 + ONNX Runtime — object detection
 - OpenCV and Pillow — image processing and annotation
 - ffmpeg (via `imageio-ffmpeg`) — video transcoding
+- Hugging Face Transformers (Flan-T5) — sign sequence to sentence, trained on ASLG-PC12 + in-domain phrases
 
 ### Frontend
 
@@ -220,7 +238,9 @@ still being processed are dropped so results stay real-time.
 
 - Annotated output is stored in a single `runs/detect/predict` folder, so the backend handles one file upload
   at a time
-- The sentence paraphrasing service (`paraphraser.py`, `sentence_generator.py`) is currently disabled
+- Sentences can only use the 22 recognised signs; words outside the vocabulary (e.g. fingerspelled names) are
+  missing, so the raw sign sequence is always shown next to the sentence
+- Sentence generation runs on uploaded videos only, not in the real-time tab
 
 ## License
 

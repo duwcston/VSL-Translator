@@ -29,6 +29,14 @@ GLOSS_MIN_DURATION_SECONDS = 0.3
 # ...and the same sign interrupted by at most this much is counted once.
 GLOSS_MAX_GAP_SECONDS = 0.25
 
+# Sign sequence -> English sentence (see services/sentence_generator.py).
+# "seq2seq" uses the fine-tuned model in SENTENCE_MODEL_DIR (falls back to
+# "none" if it isn't there yet); "none" disables sentence generation.
+SENTENCE_BACKEND = os.getenv("SENTENCE_BACKEND", "seq2seq")
+SENTENCE_MODEL_DIR = MODELS_DIR / "gloss2text"
+SENTENCE_NUM_BEAMS = 4
+SENTENCE_MAX_NEW_TOKENS = 32
+
 CORS_ORIGINS = ["http://localhost:5173"]
 
 APP_TITLE = "ASL Detection Backend"

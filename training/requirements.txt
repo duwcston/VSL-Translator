@@ -1,0 +1,2 @@
+# Local evaluation (training/evaluate.py). Training itself runs in Colab, see train_gloss2text.ipynb.
+sacrebleu==2.5.1

@@ -34,7 +34,7 @@ export interface DetectionResponse {
     video_path?: string;
     fps?: number;
     glosses?: GlossSegment[];
-    sentence?: string;
+    sentence?: string | null;  // English sentence built from the glosses (videos only)
 }
 
 export type JobStatus = "pending" | "processing" | "done" | "error";

@@ -1,4 +1,4 @@
-import { Eye, Clock, Film } from "lucide-react";
+import { Eye, Clock, Film, MessageSquare } from "lucide-react";
 import { Detection, DetectionResponse } from "../../types/DetectionResponse";
 import GlossSequence from "./GlossSequence";
 
@@ -95,6 +95,18 @@ function DetectionDisplay({
                 </p>
               )}
             </div>
+
+            {isVideo && result.sentence && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-blue-900">
+                  <MessageSquare className="h-4 w-4" />
+                  Translation
+                </div>
+                <p className="text-lg leading-relaxed font-medium text-slate-900">
+                  {result.sentence}
+                </p>
+              </div>
+            )}
 
             {isVideo && result.glosses && (
               <div className="border-t border-slate-200 pt-4">

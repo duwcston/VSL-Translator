@@ -5,6 +5,7 @@ from app.config.config import CORS_ORIGINS, APP_TITLE, APP_DESCRIPTION, APP_VERS
 from app.api.routes import api_router
 from app.api.routes.websocket import handle_websocket_detection
 from app.services.detector import initialize_detector
+from app.services.sentence_generator import get_sentence_generator
 
 
 def create_application() -> FastAPI:
@@ -34,4 +35,5 @@ app = create_application()
 async def startup():
     print("Initializing sign language detection model...")
     initialize_detector()
+    get_sentence_generator()
     print("Model initialization complete!")

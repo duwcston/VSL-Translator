@@ -27,15 +27,15 @@ from app.utils.file_utils import (
 from app.services.detector import get_detector
 from app.services.gloss_segmenter import segment_glosses
 from app.services.job_manager import job_manager
+from app.services.sentence_generator import generate_sentence
 from app.services.video_processor import convert_avi_to_mp4
-
-# from app.services.sentence_generator import generate_sentence_from_detections
 
 router = APIRouter(tags=["Detection"])
 
-# Video frame-by-frame detection accounts for this share of a video job's
-# progress; the remainder covers the avi->mp4 conversion that follows it.
-VIDEO_DETECTION_PROGRESS_SHARE = 90
+# Progress milestones for a video job: frame-by-frame detection runs up to
+# VIDEO_DETECTION_PROGRESS_SHARE, then avi->mp4 conversion, then the sentence.
+VIDEO_DETECTION_PROGRESS_SHARE = 85
+VIDEO_CONVERSION_DONE_PROGRESS = 95
 
 # Where Ultralytics writes annotated output; exist_ok stops it from creating
 # predict2, predict3, ... so the result endpoint always reads the same folder.
@@ -111,8 +111,12 @@ class DetectionHandler:
         job_manager.set_progress(job_id, VIDEO_DETECTION_PROGRESS_SHARE)
         glosses = segment_glosses(frame_detections, fps)
         video_path = await self._handle_video_conversion()
+        job_manager.set_progress(job_id, VIDEO_CONVERSION_DONE_PROGRESS)
+
+        sentence = await run_in_threadpool(
+            generate_sentence, [gloss["label"] for gloss in glosses]
+        )
         job_manager.set_progress(job_id, 99)
-        # sentence = generate_sentence_from_detections(frame_detections)
 
         return {
             "detections": frame_detections,
@@ -120,7 +124,7 @@ class DetectionHandler:
             "type": "video",
             "fps": fps,
             "glosses": glosses,
-            # "sentence": sentence,
+            "sentence": sentence,
         }
 
     def _run_image_detection(self, temp_path: Path):
@@ -136,8 +140,7 @@ class DetectionHandler:
         )
         detections = self.detector.extract_detections(results)
 
-        # sentence = generate_sentence_from_detections(detections)
-        return {"detections": detections, "type": "image", "sentence": ""}
+        return {"detections": detections, "type": "image"}
 
     async def process_image(self, temp_path: Path):
         return await run_in_threadpool(self._run_image_detection, temp_path)
