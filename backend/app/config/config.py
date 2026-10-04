@@ -23,6 +23,12 @@ WEBSOCKET_CONF_THRESHOLD = 0.7
 REALTIME_INPUT_SIZE = 320
 CHUNK_SIZE = 1024 * 1024
 
+# Gloss segmentation for uploaded videos (see services/gloss_segmenter.py):
+# signs shorter than this are dropped as misdetections...
+GLOSS_MIN_DURATION_SECONDS = 0.3
+# ...and the same sign interrupted by at most this much is counted once.
+GLOSS_MAX_GAP_SECONDS = 0.25
+
 CORS_ORIGINS = ["http://localhost:5173"]
 
 APP_TITLE = "ASL Detection Backend"

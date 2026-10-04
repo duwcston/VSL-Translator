@@ -25,6 +25,7 @@ from app.utils.file_utils import (
     safe_remove_file,
 )
 from app.services.detector import get_detector
+from app.services.gloss_segmenter import segment_glosses
 from app.services.job_manager import job_manager
 from app.services.video_processor import convert_avi_to_mp4
 
@@ -108,6 +109,7 @@ class DetectionHandler:
         )
 
         job_manager.set_progress(job_id, VIDEO_DETECTION_PROGRESS_SHARE)
+        glosses = segment_glosses(frame_detections, fps)
         video_path = await self._handle_video_conversion()
         job_manager.set_progress(job_id, 99)
         # sentence = generate_sentence_from_detections(frame_detections)
@@ -117,6 +119,7 @@ class DetectionHandler:
             "video_path": video_path,
             "type": "video",
             "fps": fps,
+            "glosses": glosses,
             # "sentence": sentence,
         }
 

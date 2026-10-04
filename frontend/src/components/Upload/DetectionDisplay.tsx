@@ -1,10 +1,12 @@
 import { Eye, Clock, Film } from "lucide-react";
 import { Detection, DetectionResponse } from "../../types/DetectionResponse";
+import GlossSequence from "./GlossSequence";
 
 interface DetectionDisplayProps {
   results: Record<string, DetectionResponse>;
   currentTime: number;
   currentFrameDetections: Detection[];
+  onSeek: (time: number) => void;
 }
 
 function confidenceColor(confidence: number) {
@@ -17,6 +19,7 @@ function DetectionDisplay({
   results,
   currentTime,
   currentFrameDetections,
+  onSeek,
 }: DetectionDisplayProps) {
   const result = Object.values(results)[0];
   const isVideo = result?.type === "video";
@@ -92,6 +95,16 @@ function DetectionDisplay({
                 </p>
               )}
             </div>
+
+            {isVideo && result.glosses && (
+              <div className="border-t border-slate-200 pt-4">
+                <GlossSequence
+                  glosses={result.glosses}
+                  currentTime={currentTime}
+                  onSeek={onSeek}
+                />
+              </div>
+            )}
           </>
         )}
       </div>

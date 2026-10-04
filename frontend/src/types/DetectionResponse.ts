@@ -18,11 +18,22 @@ export interface FrameDetection {
     detections: Detection[];
 }
 
+// One sign in a video: consecutive frames of the same label, merged by the
+// backend's gloss segmenter. start/end are in seconds.
+export interface GlossSegment {
+    label: string;
+    start: number;
+    end: number;
+    confidence: number;
+    frames: number;
+}
+
 export interface DetectionResponse {
     detections: Detection[] | Detection | FrameDetection[];
     type?: "video" | "image";
     video_path?: string;
     fps?: number;
+    glosses?: GlossSegment[];
     sentence?: string;
 }
 

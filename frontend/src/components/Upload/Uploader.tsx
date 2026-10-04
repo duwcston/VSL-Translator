@@ -74,7 +74,18 @@ export default function Uploader() {
     }
   };
 
-  async function pollJobProgress(jobId: string, token: number, filename: string) {
+  const handleSeek = (time: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = time;
+      handleTimeUpdate(time);
+    }
+  };
+
+  async function pollJobProgress(
+    jobId: string,
+    token: number,
+    filename: string,
+  ) {
     while (uploadTokenRef.current === token) {
       const job = await resultApi.getJobProgress(jobId);
       if (uploadTokenRef.current !== token) return;
@@ -211,6 +222,7 @@ export default function Uploader() {
             results={results}
             currentTime={currentTime}
             currentFrameDetections={currentFrameDetections}
+            onSeek={handleSeek}
           />
         </div>
       </div>
