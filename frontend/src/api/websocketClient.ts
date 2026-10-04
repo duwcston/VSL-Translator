@@ -3,109 +3,81 @@ import { API_DETECTIONS_URL } from "./constants";
 // WebSocket client for real-time detection
 type WebSocketCallback = (data: unknown) => void;
 type WebSocketErrorCallback = (error: unknown) => void;
-const url = import.meta.env.VITE_BACKEND_URL
+type WebSocketCloseCallback = () => void;
+const url = import.meta.env.VITE_BACKEND_URL as string;
 
 class WebSocketClient {
     private socket: WebSocket | null = null;
-    private isConnected: boolean = false;
-    // private wsApi: string = 'ws://localhost:8000/ws/detect';
-    private wsApi: string = `${url}/${API_DETECTIONS_URL}/stream`;
+    // http(s):// backend URL -> ws(s):// (browsers accept both, but be explicit)
+    private wsApi: string = `${url.replace(/^http/, "ws")}/${API_DETECTIONS_URL}/stream`;
     private onMessageCallback: WebSocketCallback | null = null;
     private onErrorCallback: WebSocketErrorCallback | null = null;
-    private reconnectAttempts: number = 0;
-    private maxReconnectAttempts: number = 5;
-    private reconnectTimeout: number = 2000;
+    private onCloseCallback: WebSocketCloseCallback | null = null;
 
-    constructor() {
-        this.connect = this.connect.bind(this);
-        this.disconnect = this.disconnect.bind(this);
-        this.sendFrame = this.sendFrame.bind(this);
-        this.onMessage = this.onMessage.bind(this);
-        this.onError = this.onError.bind(this);
+    get isConnected(): boolean {
+        return this.socket?.readyState === WebSocket.OPEN;
     }
 
     connect(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this.isConnected && this.socket) {
+            if (this.isConnected) {
                 resolve();
                 return;
             }
 
-            this.socket = new WebSocket(this.wsApi);
+            const socket = new WebSocket(this.wsApi);
+            this.socket = socket;
+            let opened = false;
 
-            this.socket.onopen = () => {
-                this.isConnected = true;
-                this.reconnectAttempts = 0;
-                console.log('WebSocket connection established');
+            socket.onopen = () => {
+                opened = true;
                 resolve();
             };
 
-            this.socket.onclose = (event) => {
-                this.isConnected = false;
-                console.log(`WebSocket connection closed: ${event.code} ${event.reason}`);
-
-                // Try to reconnect if the connection was lost unexpectedly
-                if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                    this.reconnectAttempts++;
-                    console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-                    setTimeout(() => this.connect(), this.reconnectTimeout);
-                }
-            };
-
-            this.socket.onmessage = (event) => {
+            socket.onmessage = (event) => {
                 try {
-                    const data = JSON.parse(event.data);
-                    if (this.onMessageCallback) {
-                        this.onMessageCallback(data);
-                    }
+                    this.onMessageCallback?.(JSON.parse(event.data));
                 } catch (error) {
                     console.error('Error parsing WebSocket message:', error);
-                    if (this.onErrorCallback) {
-                        this.onErrorCallback(error);
-                    }
+                    this.onErrorCallback?.(error);
                 }
             };
 
-            this.socket.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                if (this.onErrorCallback) {
-                    this.onErrorCallback(error);
+            socket.onerror = (error) => {
+                if (!opened) {
+                    reject(error);
+                    return;
                 }
-                reject(error);
+                this.onErrorCallback?.(error);
+            };
+
+            // Only fires for connections we didn't close ourselves (disconnect()
+            // detaches the handlers first), so the caller can surface a lost
+            // connection instead of the client silently reconnecting.
+            socket.onclose = () => {
+                if (this.socket === socket) this.socket = null;
+                if (opened) this.onCloseCallback?.();
             };
         });
     }
 
     disconnect(): void {
         if (this.socket) {
-            this.isConnected = false;
-            this.socket.close();
+            const socket = this.socket;
             this.socket = null;
-            console.log('WebSocket connection closed');
+            socket.onopen = socket.onmessage = socket.onerror = socket.onclose = null;
+            socket.close();
         }
     }
 
-    sendFrame(
-        frameData: string,
-        timestamp?: number,
-        returnImage: boolean = false,
-        skipFrames: number = 0,
-        resizeFactor: number = 1.0,
-        inputSize: number = 320
-    ): void {
-        if (this.socket && this.isConnected) {
-            const message = JSON.stringify({
-                image: frameData,
-                timestamp: timestamp || Date.now(),
-                return_image: returnImage,
-                skip_frames: skipFrames,
-                resize_factor: resizeFactor,
-                input_size: inputSize
-            });
-            this.socket.send(message);
-        } else {
-            console.warn('Cannot send frame: WebSocket is not connected');
-        }
+    sendFrame(frameData: string, returnImage: boolean = false): boolean {
+        if (!this.socket || !this.isConnected) return false;
+        this.socket.send(JSON.stringify({
+            image: frameData,
+            timestamp: Date.now(),
+            return_image: returnImage,
+        }));
+        return true;
     }
 
     onMessage(callback: WebSocketCallback): void {
@@ -114,6 +86,10 @@ class WebSocketClient {
 
     onError(callback: WebSocketErrorCallback): void {
         this.onErrorCallback = callback;
+    }
+
+    onClose(callback: WebSocketCloseCallback): void {
+        this.onCloseCallback = callback;
     }
 }
 

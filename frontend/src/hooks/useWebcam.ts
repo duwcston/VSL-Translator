@@ -1,25 +1,37 @@
 import { useRef, useCallback } from "react";
 
+// The model runs at 320x320, so larger frames only cost encode/upload/decode
+// time without improving detection.
+const CAPTURE_WIDTH = 320;
+const JPEG_QUALITY = 0.8;
+
 export const useWebcam = () => {
     const streamRef = useRef<MediaStream | null>(null);
+    // Bumped by stopWebcam so a getUserMedia call that resolves after the
+    // component was torn down (e.g. React StrictMode's double mount) releases
+    // its camera instead of leaking it.
+    const generationRef = useRef(0);
 
     const startWebcam = useCallback(async (videoRef: React.RefObject<HTMLVideoElement | null>) => {
+        const generation = generationRef.current;
+        if (streamRef.current) return { success: true, error: null };
+
         try {
-            const constraints = {
+            const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     width: { ideal: 640 },
                     height: { ideal: 480 },
                     facingMode: "user"
                 }
-            };
+            });
 
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                streamRef.current = stream;
+            if (generation !== generationRef.current || !videoRef.current) {
+                stream.getTracks().forEach(track => track.stop());
+                return { success: false, error: null };
             }
 
+            videoRef.current.srcObject = stream;
+            streamRef.current = stream;
             return { success: true, error: null };
         } catch (error) {
             console.error("Error accessing webcam:", error);
@@ -31,37 +43,38 @@ export const useWebcam = () => {
     }, []);
 
     const stopWebcam = useCallback((videoRef: React.RefObject<HTMLVideoElement | null>) => {
+        generationRef.current++;
         if (streamRef.current) {
-            const tracks = streamRef.current.getTracks();
-            tracks.forEach(track => track.stop());
+            streamRef.current.getTracks().forEach(track => track.stop());
             streamRef.current = null;
         }
 
         if (videoRef.current) {
             videoRef.current.srcObject = null;
         }
-    }, []); const captureFrame = useCallback((
+    }, []);
+
+    const captureFrame = useCallback((
         videoRef: React.RefObject<HTMLVideoElement | null>,
         canvasRef: React.RefObject<HTMLCanvasElement | null>
     ) => {
-        if (videoRef.current && canvasRef.current) {
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
-            const context = canvas.getContext('2d');
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!video || !canvas || !video.videoWidth) return null;
 
-            if (context) {
-                // Set canvas dimensions to match video
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        if (!context) return null;
 
-                // Draw the video frame to the canvas
-                context.drawImage(video, 0, 0, canvas.width, canvas.height); // Get the frame as a data URL
-                // Quality 1.0 produces near-lossless JPEGs (much larger payloads)
-                // for a frame that's only ever sent to the backend, never shown.
-                return canvas.toDataURL('image/jpeg', 0.8);
-            }
+        const width = Math.min(CAPTURE_WIDTH, video.videoWidth);
+        const height = Math.round(video.videoHeight * (width / video.videoWidth));
+        // Only resize when needed: assigning width/height reallocates the canvas.
+        if (canvas.width !== width || canvas.height !== height) {
+            canvas.width = width;
+            canvas.height = height;
         }
-        return null;
+
+        context.drawImage(video, 0, 0, width, height);
+        return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
     }, []);
 
     return {

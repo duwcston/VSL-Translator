@@ -7,9 +7,9 @@ export interface Detection {
 export interface RealtimeDetectionResult {
     timestamp: number;
     detections: Detection[];
-    image?: string;  // Base64 encoded image with annotations
+    frame_size?: [number, number];  // [width, height] of the frame the bboxes refer to
+    image?: string;  // Base64 encoded annotated frame, only when return_image is set
     error?: string;
-    skipped?: boolean;
 }
 
 export interface FrameDetection {

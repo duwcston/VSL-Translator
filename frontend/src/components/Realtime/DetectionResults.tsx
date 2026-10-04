@@ -2,30 +2,31 @@ import { Detection } from "../../types/DetectionResponse";
 
 interface DetectionResultsProps {
   detections: Detection[];
+  isStreaming: boolean;
 }
 
-function DetectionResults({ detections }: DetectionResultsProps) {
+function DetectionResults({ detections, isStreaming }: DetectionResultsProps) {
+  const top = detections[0];
+
   return (
-    <div className="mt-4">
-      {/* <h3 className="font-bold text-lg">Detections</h3> */}
-      <div className="mt-2 max-h-[200px] overflow-y-auto bg-gray-50 rounded p-2">
-        {detections.length > 0 ? (
-          <ul className="divide-y divide-gray-200">
-            {detections.map((detection, index) => (
-              <li key={index} className="py-2">
-                <div className="flex justify-between">
-                  <span className="font-medium">{detection.class_name}</span>
-                  <span className="text-gray-600">
-                    {(detection.confidence * 100).toFixed(1)}%
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-gray-500 text-center py-4">No detections found</p>
-        )}
-      </div>
+    // Fixed height so the panel doesn't jump as detections come and go.
+    <div className="flex h-36 flex-col items-center justify-center rounded-lg bg-slate-50 p-4 text-center">
+      {top ? (
+        <>
+          <span className="text-4xl font-bold text-slate-900">
+            {top.class_name}
+          </span>
+          <span className="mt-2 font-mono text-sm text-slate-500">
+            {(top.confidence * 100).toFixed(1)}% confidence
+          </span>
+        </>
+      ) : (
+        <p className="text-slate-500">
+          {isStreaming
+            ? "No signs detected"
+            : "Start detection to see results"}
+        </p>
+      )}
     </div>
   );
 }
