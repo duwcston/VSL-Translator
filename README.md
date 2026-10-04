@@ -46,7 +46,9 @@ VSL-Detection/
 │   ├── requirements.txt      # Python dependencies
 │   └── run.py                # Application entry point
 │
-├── training/                 # Sentence model: datasets, Colab notebook, evaluation
+├── training/                 # Model training (Colab notebooks + scripts)
+│   ├── detector/             # Sign detector: STAC + knowledge distillation (YOLO11s-P2)
+│   └── ...                   # Sentence model: datasets, notebook, evaluation
 │
 └── frontend/                 # React + TypeScript frontend
     ├── src/

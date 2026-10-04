@@ -4,8 +4,18 @@ Turns the sign sequence detected in an uploaded video into an English sentence, 
 `Your, Name, What` → *"What is your name?"*. The backend works without it (it then
 shows only the sign sequence); this folder trains, installs and evaluates the model.
 
+The sign **detector** itself (YOLO11s-P2, semi-supervised STAC + knowledge distillation)
+is trained separately: see [detector/README.md](detector/README.md).
+
 ```
 training/
+├── detector/                   # sign detector training (see detector/README.md)
+│   ├── stac_kd.py              # STAC + knowledge distillation pipeline (module + CLI)
+│   ├── train_stac_kd.ipynb     # Colab notebook: dataset download, training, export
+│   ├── yolo11-p2.yaml          # YOLO11 with a P2 head, loaded as yolo11s-p2.yaml
+│   ├── yolo11s-p2.pt           # the paper's P2 starting weights (optional, --model)
+│   ├── README.md
+│   └── requirements.txt        # ultralytics, kagglehub, onnx, ...
 ├── data/
 │   ├── eval_pairs.txt          # hand-written sign sequences + reference sentences (edit this)
 │   ├── dev.jsonl               # ~30% of eval_pairs, for tuning
@@ -43,6 +53,11 @@ Commit the regenerated files and push before training: the notebook clones the r
 2. *Runtime → Change runtime type → T4 GPU*, then *Runtime → Run all*.
 3. The notebook downloads ASLG-PC12, trains, prints dev scores after each stage and
    downloads `gloss2text.zip`.
+
+Next step, in Colab:
+1. Open training/train_gloss2text.ipynb from GitHub (File → Open notebook → GitHub, repo duwcston/VSL-Detection, branch ASL).
+2. Switch the runtime to a T4 GPU, then Runtime → Run all. If the repo is private, put a GitHub token in the git clone URL in step 2 of the notebook.
+3. Extract the downloaded gloss2text.zip into backend/models/gloss2text/ and run python training/evaluate.py --noisy --show 10.
 
 | Stage | Data | Default |
 |---|---|---|
