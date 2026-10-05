@@ -1,31 +1,30 @@
-{"labels": ["My", "House"], "references": ["My house."], "gloss": "X-MY HOUSE"}
-{"labels": ["Pain", "Where"], "references": ["Where is the pain?", "Where does it hurt?"], "gloss": "PAIN WHERE"}
+{"labels": ["Your", "House"], "references": ["Your house."], "gloss": "X-YOUR HOUSE"}
+{"labels": ["You", "Pain"], "references": ["Are you in pain?", "Do you have pain?"], "gloss": "X-YOU PAIN"}
 {"labels": ["No"], "references": ["No."], "gloss": "NO"}
-{"labels": ["Yes", "Drink"], "references": ["Yes, drink."], "gloss": "YES DRINK"}
-{"labels": ["I", "Pain"], "references": ["I am in pain."], "gloss": "X-I PAIN"}
-{"labels": ["No", "Pain"], "references": ["No pain.", "There is no pain."], "gloss": "NO PAIN"}
-{"labels": ["Call", "Doctor"], "references": ["Call a doctor.", "Call the doctor."], "gloss": "CALL DOCTOR"}
-{"labels": ["I", "House"], "references": ["I am at home.", "I am in the house."], "gloss": "X-I HOUSE"}
-{"labels": ["Doctor", "Eat"], "references": ["The doctor is eating."], "gloss": "DOCTOR EAT"}
-{"labels": ["What", "Drink"], "references": ["What drink?", "What do you want to drink?"], "gloss": "WHAT DRINK"}
-{"labels": ["You", "Call", "I"], "references": ["Call me.", "You call me."], "gloss": "X-YOU CALL X-I"}
-{"labels": ["Doctor", "Thirsty"], "references": ["The doctor is thirsty."], "gloss": "DOCTOR THIRSTY"}
-{"labels": ["Where", "House"], "references": ["Where is the house?"], "gloss": "WHERE HOUSE"}
-{"labels": ["I", "Deaf"], "references": ["I am deaf."], "gloss": "X-I DEAF"}
-{"labels": ["Call", "I"], "references": ["Call me."], "gloss": "CALL X-I"}
-{"labels": ["Deaf", "You"], "references": ["Are you deaf?"], "gloss": "DEAF X-YOU"}
-{"labels": ["Doctor", "Help", "You"], "references": ["The doctor will help you.", "The doctor helps you."], "gloss": "DOCTOR HELP X-YOU"}
-{"labels": ["Your", "Doctor", "Where"], "references": ["Where is your doctor?"], "gloss": "X-YOUR DOCTOR WHERE"}
-{"labels": ["Where", "My", "Doctor"], "references": ["Where is my doctor?"], "gloss": "WHERE X-MY DOCTOR"}
-{"labels": ["I", "Pain", "Help"], "references": ["I am in pain, help me.", "I am in pain, please help."], "gloss": "X-I PAIN HELP"}
-{"labels": ["Yes", "I", "Deaf"], "references": ["Yes, I am deaf."], "gloss": "YES X-I DEAF"}
-{"labels": ["You", "Eat", "Drink"], "references": ["Are you eating and drinking?"], "gloss": "X-YOU EAT DRINK"}
-{"labels": ["You", "Doctor"], "references": ["Are you a doctor?"], "gloss": "X-YOU DOCTOR"}
-{"labels": ["Your", "Name", "What"], "references": ["What is your name?", "What's your name?"], "gloss": "X-YOUR NAME WHAT"}
 {"labels": ["I", "Eat"], "references": ["I am eating.", "I eat."], "gloss": "X-I EAT"}
-{"labels": ["Your", "Doctor", "Deaf"], "references": ["Is your doctor deaf?"], "gloss": "X-YOUR DOCTOR DEAF"}
-{"labels": ["Drink", "You"], "references": ["Do you want a drink?", "Drink?"], "gloss": "DRINK X-YOU"}
-{"labels": ["I", "Thirsty", "Drink"], "references": ["I am thirsty, I want to drink.", "I am thirsty and want a drink."], "gloss": "X-I THIRSTY DRINK"}
-{"labels": ["My", "Doctor", "Deaf"], "references": ["My doctor is deaf."], "gloss": "X-MY DOCTOR DEAF"}
+{"labels": ["Doctor", "Eat"], "references": ["The doctor is eating."], "gloss": "DOCTOR EAT"}
+{"labels": ["You", "Call", "Doctor"], "references": ["Did you call the doctor?", "Call the doctor."], "gloss": "X-YOU CALL DOCTOR"}
+{"labels": ["Deaf", "You"], "references": ["Are you deaf?"], "gloss": "DEAF X-YOU"}
+{"labels": ["No", "Thank you"], "references": ["No, thank you."], "gloss": "NO THANK X-YOU"}
+{"labels": ["Help", "Doctor"], "references": ["Help, I need a doctor.", "Help, call a doctor."], "gloss": "HELP DOCTOR"}
+{"labels": ["Your", "Pain", "Where"], "references": ["Where is your pain?", "Where does it hurt?"], "gloss": "X-YOUR PAIN WHERE"}
+{"labels": ["Help", "I"], "references": ["Help me."], "gloss": "HELP X-I"}
+{"labels": ["Call", "Help"], "references": ["Call for help."], "gloss": "CALL HELP"}
+{"labels": ["Drink", "Where"], "references": ["Where is the drink?", "Where can I get a drink?"], "gloss": "DRINK WHERE"}
+{"labels": ["Your", "House", "Where"], "references": ["Where is your house?", "Where do you live?"], "gloss": "X-YOUR HOUSE WHERE"}
+{"labels": ["Hello", "Thank you"], "references": ["Hello, thank you."], "gloss": "HELLO THANK X-YOU"}
+{"labels": ["Yes", "Eat"], "references": ["Yes, eat."], "gloss": "YES EAT"}
+{"labels": ["Hello", "How", "Your", "Pain"], "references": ["Hello, how is your pain?"], "gloss": "HELLO HOW X-YOUR PAIN"}
+{"labels": ["Your", "Name", "What"], "references": ["What is your name?", "What's your name?"], "gloss": "X-YOUR NAME WHAT"}
+{"labels": ["I", "Doctor"], "references": ["I am a doctor."], "gloss": "X-I DOCTOR"}
+{"labels": ["Yes", "I", "Thirsty"], "references": ["Yes, I am thirsty."], "gloss": "YES X-I THIRSTY"}
+{"labels": ["No", "Pain"], "references": ["No pain.", "There is no pain."], "gloss": "NO PAIN"}
+{"labels": ["Yes", "Pain"], "references": ["Yes, it hurts.", "Yes, I am in pain."], "gloss": "YES PAIN"}
+{"labels": ["You", "Thirsty"], "references": ["Are you thirsty?"], "gloss": "X-YOU THIRSTY"}
 {"labels": ["Your", "Name"], "references": ["What is your name?", "Your name?"], "gloss": "X-YOUR NAME"}
 {"labels": ["You", "Deaf"], "references": ["Are you deaf?", "You are deaf."], "gloss": "X-YOU DEAF"}
+{"labels": ["Yes", "Call", "Doctor"], "references": ["Yes, call the doctor."], "gloss": "YES CALL DOCTOR"}
+{"labels": ["Thank you", "Doctor"], "references": ["Thank you, doctor."], "gloss": "THANK X-YOU DOCTOR"}
+{"labels": ["I", "Deaf"], "references": ["I am deaf."], "gloss": "X-I DEAF"}
+{"labels": ["Where", "Your", "House"], "references": ["Where is your house?", "Where do you live?"], "gloss": "WHERE X-YOUR HOUSE"}
+{"labels": ["Yes", "I", "Deaf"], "references": ["Yes, I am deaf."], "gloss": "YES X-I DEAF"}

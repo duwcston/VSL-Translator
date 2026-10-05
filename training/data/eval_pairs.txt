@@ -12,9 +12,6 @@ No, I, Deaf | No, I am not deaf.
 Hello, I, Deaf | Hello, I am deaf.
 Hello, You, Deaf | Hello, are you deaf?
 I, Deaf, You, Deaf | I am deaf. Are you deaf? || I am deaf, are you deaf?
-Doctor, Deaf | The doctor is deaf.
-My, Doctor, Deaf | My doctor is deaf.
-Your, Doctor, Deaf | Is your doctor deaf?
 I, Thirsty | I am thirsty.
 You, Thirsty | Are you thirsty?
 Yes, I, Thirsty | Yes, I am thirsty.
