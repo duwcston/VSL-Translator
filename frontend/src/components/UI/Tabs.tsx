@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Upload, Video } from "lucide-react";
+import { Languages, Upload, Video } from "lucide-react";
 import UploadSection from "../../pages/UploadSection";
 import RealtimeSection from "../../pages/RealtimeSection";
+import TranslateSection from "../../pages/TranslateSection";
 
-type TabId = "upload" | "realtime";
+type TabId = "upload" | "realtime" | "translate";
 
 const STORAGE_KEY = "activeTab";
 
@@ -14,13 +15,17 @@ const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     label: "Real-time Detection",
     icon: <Video className="h-4 w-4" />,
   },
+  {
+    id: "translate",
+    label: "Gloss to Text",
+    icon: <Languages className="h-4 w-4" />,
+  },
 ];
 
 function readSavedTab(): TabId {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "realtime"
-      ? "realtime"
-      : "upload";
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return tabs.some((tab) => tab.id === saved) ? (saved as TabId) : "upload";
   } catch {
     return "upload";
   }
@@ -45,12 +50,12 @@ export default function Tabs() {
       {/* Tab Navigation */}
       <div
         role="tablist"
-        className="relative mb-6 grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm"
+        className="relative mb-6 grid grid-cols-3 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm"
       >
         {/* Sliding indicator: one transform transition instead of re-mounting */}
         <div
           aria-hidden
-          className="absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-0.375rem)] rounded-lg bg-blue-600 transition-transform duration-300 ease-out"
+          className="absolute top-1.5 bottom-1.5 left-1.5 w-[calc((100%-0.75rem)/3)] rounded-lg bg-blue-600 transition-transform duration-300 ease-out"
           style={{ transform: `translateX(${activeIndex * 100}%)` }}
         />
         {tabs.map((tab) => (
@@ -82,6 +87,11 @@ export default function Tabs() {
         {activeTab === "realtime" && (
           <div className="animate-fade-in">
             <RealtimeSection />
+          </div>
+        )}
+        {activeTab === "translate" && (
+          <div className="animate-fade-in">
+            <TranslateSection />
           </div>
         )}
       </div>
